@@ -1,0 +1,148 @@
+# ===========================
+# Java / Maven
+# ===========================
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+
+# Maven wrapper jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDEs
+.idea/
+*.iws
+*.iml
+*.ipr
+.project
+.classpath
+.settings/
+*.launch
+*.factorypath
+
+# Spring Boot DevTools
+.spring-boot-devtools.properties
+
+# Logs
+*.log
+logs/
+spring.log
+
+# ===========================
+# Node / JavaScript / Frontend
+# ===========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+.next/
+.nuxt/
+dist/
+build/
+out/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ===========================
+# Android
+# ===========================
+*.apk
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+local.properties
+.gradle/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# ===========================
+# macOS
+# ===========================
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+
+# ===========================
+# Windows
+# ===========================
+Thumbs.db
+Thumbs.db:encdata
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# ===========================
+# Linux
+# ===========================
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ===========================
+# Docker
+# ===========================
+.docker/
+
+# ===========================
+# Secrets / Credentials
+# ===========================
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# ===========================
+# Misc
+# ===========================
+*.swp
+*.swo
+*.bak
+*.tmp
+*.orig
+.cache/
+.terraform/
+
+C:\Users\dibya\Documents\Boondi\PROGRESS.md

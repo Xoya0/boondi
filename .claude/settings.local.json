@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l \"C:\\\\Users\\\\dibya\\\\Documents\\\\Boondi\\\\doc\"/*.md)",
+      "Bash(mvn wrapper:wrapper -Dmaven=3.9.6)",
+      "Bash(./mvnw compile *)",
+      "Bash(./mvnw dependency:tree -Dincludes=org.projectlombok:lombok)",
+      "Bash(./mvnw compiler:compile -Dmaven.compiler.verbose=true)",
+      "Bash(grep -v \"^WARNING\\\\|^$\")",
+      "Bash(docker info *)",
+      "Bash(./mvnw test *)",
+      "Bash(docker context *)",
+      "Bash(./mvnw test-compile *)",
+      "Bash(./mvnw dependency:resolve -q)",
+      "Bash(./mvnw package *)",
+      "Bash(grep \"\\\\.jar$\")",
+      "Bash(npm create *)",
+      "Bash(npm install *)",
+      "Bash(npx tailwindcss *)",
+      "Bash(./node_modules/.bin/tailwindcss init *)",
+      "Bash(npm run *)"
+    ]
+  }
+}
