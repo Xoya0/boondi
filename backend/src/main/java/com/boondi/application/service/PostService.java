@@ -60,6 +60,9 @@ public class PostService {
         if (request.getParentPostId() != null) {
             parentPost = postRepository.findById(request.getParentPostId())
                     .orElseThrow(() -> BoondiException.postNotFound(request.getParentPostId().toString()));
+            if (parentPost.getDeletedAt() != null) {
+                throw BoondiException.postNotFound(request.getParentPostId().toString());
+            }
         }
 
         // Quote (E6-03): a quote is a regular post embedding another post
@@ -67,6 +70,9 @@ public class PostService {
         if (request.getQuotedPostId() != null) {
             quotedPost = postRepository.findById(request.getQuotedPostId())
                     .orElseThrow(() -> BoondiException.postNotFound(request.getQuotedPostId().toString()));
+            if (quotedPost.getDeletedAt() != null) {
+                throw BoondiException.postNotFound(request.getQuotedPostId().toString());
+            }
         }
 
         Post post = Post.builder()

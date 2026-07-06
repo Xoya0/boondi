@@ -117,8 +117,12 @@ public class InteractionService {
     }
 
     private Post loadPost(UUID postId) {
-        return postRepository.findById(postId)
+        Post post = postRepository.findById(postId)
                 .orElseThrow(() -> BoondiException.postNotFound(postId.toString()));
+        if (post.getDeletedAt() != null) {
+            throw BoondiException.postNotFound(postId.toString());
+        }
+        return post;
     }
 
     private PostResponse toEnrichedResponse(Post post, UUID viewerId) {
