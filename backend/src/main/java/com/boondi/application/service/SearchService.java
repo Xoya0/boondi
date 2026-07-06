@@ -6,7 +6,6 @@ import com.boondi.application.dto.response.PostResponse;
 import com.boondi.application.dto.response.UserResponse;
 import com.boondi.application.mapper.PostMapper;
 import com.boondi.application.mapper.UserMapper;
-import com.boondi.domain.entity.Hashtag;
 import com.boondi.domain.entity.Post;
 import com.boondi.domain.entity.User;
 import com.boondi.domain.repository.HashtagRepository;
@@ -95,13 +94,15 @@ public class SearchService {
         int offset = parseOffset(cursorStr);
         String normalized = query.trim().replaceFirst("^#", "").toLowerCase();
 
-        List<Hashtag> results = hashtagRepository.searchByPrefix(normalized, pageSize + 1, offset);
+        List<Object[]> results = hashtagRepository.searchByPrefixWithCount(normalized, pageSize + 1, offset);
         boolean hasMore = results.size() > pageSize && offset + pageSize < MAX_OFFSET;
-        List<Hashtag> page = results.size() > pageSize ? results.subList(0, pageSize) : results;
+        List<Object[]> page = results.size() > pageSize ? results.subList(0, pageSize) : results;
 
-        // Prefix search doesn't compute usage counts — only the trending endpoint does
         List<HashtagResponse> items = page.stream()
-                .map(h -> HashtagResponse.builder().tag(h.getTag()).postCount(0).build())
+                .map(row -> HashtagResponse.builder()
+                        .tag((String) row[0])
+                        .postCount(((Number) row[1]).longValue())
+                        .build())
                 .toList();
         return buildPage(items, hasMore, offset, pageSize);
     }
