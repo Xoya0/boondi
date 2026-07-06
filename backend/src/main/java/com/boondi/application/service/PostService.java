@@ -5,8 +5,12 @@ import com.boondi.application.dto.request.UpdatePostRequest;
 import com.boondi.application.dto.response.PostResponse;
 import com.boondi.application.dto.response.UploadResponse;
 import com.boondi.application.mapper.PostMapper;
+import com.boondi.domain.entity.Hashtag;
 import com.boondi.domain.entity.Post;
+import com.boondi.domain.entity.PostHashtag;
 import com.boondi.domain.entity.User;
+import com.boondi.domain.repository.HashtagRepository;
+import com.boondi.domain.repository.PostHashtagRepository;
 import com.boondi.domain.repository.PostRepository;
 import com.boondi.domain.repository.UserRepository;
 import com.boondi.infrastructure.exception.BoondiException;
@@ -18,8 +22,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.OffsetDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -30,6 +38,7 @@ public class PostService {
     private static final List<String> ALLOWED_IMAGE_TYPES =
             List.of("image/jpeg", "image/png", "image/webp");
     private static final long MAX_POST_IMAGE_SIZE = 5L * 1024 * 1024; // 5 MB
+    private static final Pattern HASHTAG_PATTERN = Pattern.compile("#(\\w+)");
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
@@ -37,6 +46,9 @@ public class PostService {
     private final StorageService storageService;
     private final PostViewerStateService postViewerStateService;
     private final TimelineCacheService timelineCacheService;
+    private final NotificationService notificationService;
+    private final HashtagRepository hashtagRepository;
+    private final PostHashtagRepository postHashtagRepository;
 
     @Transactional
     public PostResponse createPost(UUID authorId, CreatePostRequest request) {
@@ -73,12 +85,16 @@ public class PostService {
         if (parentPost != null) {
             parentPost.setReplyCount(parentPost.getReplyCount() + 1);
             postRepository.save(parentPost);
+            notificationService.notifyReply(authorId, parentPost);
         }
         if (quotedPost != null) {
             // Quotes count toward the quoted post's repost total
             quotedPost.setRepostCount(quotedPost.getRepostCount() + 1);
             postRepository.save(quotedPost);
+            notificationService.notifyRepost(authorId, quotedPost);
         }
+
+        extractAndLinkHashtags(saved);
 
         // Followers' cached home timelines are now stale
         timelineCacheService.evictFollowersOf(authorId);
@@ -86,6 +102,26 @@ public class PostService {
         log.info("Post created: postId={}, authorId={}, reply={}, quote={}",
                 saved.getId(), authorId, parentPost != null, quotedPost != null);
         return postMapper.toResponse(saved);
+    }
+
+    // Hashtag extraction (E8-04): parse #word patterns, find-or-create the Hashtag,
+    // and link it to the post. Tags are stored lowercase; duplicates within the same
+    // post content are deduplicated via the Set before insert.
+    private void extractAndLinkHashtags(Post post) {
+        Matcher matcher = HASHTAG_PATTERN.matcher(post.getContent());
+        Set<String> tags = new LinkedHashSet<>();
+        while (matcher.find()) {
+            tags.add(matcher.group(1).toLowerCase());
+        }
+
+        for (String tag : tags) {
+            Hashtag hashtag = hashtagRepository.findByTag(tag)
+                    .orElseGet(() -> hashtagRepository.save(Hashtag.builder().tag(tag).build()));
+            postHashtagRepository.save(PostHashtag.builder()
+                    .postId(post.getId())
+                    .hashtagId(hashtag.getId())
+                    .build());
+        }
     }
 
     @Transactional(readOnly = true)

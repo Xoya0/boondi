@@ -34,6 +34,7 @@ public class InteractionService {
     private final PostBookmarkRepository postBookmarkRepository;
     private final PostMapper postMapper;
     private final PostViewerStateService postViewerStateService;
+    private final NotificationService notificationService;
 
     @Transactional
     public PostResponse like(UUID userId, UUID postId) {
@@ -44,6 +45,7 @@ public class InteractionService {
         postLikeRepository.save(PostLike.builder().userId(userId).postId(postId).build());
         post.setLikeCount(post.getLikeCount() + 1);
         postRepository.save(post);
+        notificationService.notifyLike(userId, post);
         log.info("Post liked: postId={}, userId={}", postId, userId);
         return toEnrichedResponse(post, userId);
     }
@@ -70,6 +72,7 @@ public class InteractionService {
         postRepostRepository.save(PostRepost.builder().userId(userId).postId(postId).build());
         post.setRepostCount(post.getRepostCount() + 1);
         postRepository.save(post);
+        notificationService.notifyRepost(userId, post);
         log.info("Post reposted: postId={}, userId={}", postId, userId);
         return toEnrichedResponse(post, userId);
     }

@@ -55,4 +55,20 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     List<Post> findReplies(@Param("parentPostId") UUID parentPostId,
                            @Param("cursor") OffsetDateTime cursor,
                            Pageable pageable);
+
+    // Full-text search (E8-02) against the generated `search_vector` tsvector column.
+    // Ranked by relevance, then recency. Column list is explicit so Hibernate's entity
+    // result mapping doesn't choke on the unmapped search_vector column from SELECT *.
+    @Query(value =
+            "SELECT p.id, p.author_id, p.content, p.image_url, p.like_count, p.repost_count, " +
+            "p.reply_count, p.bookmark_count, p.parent_post_id, p.quoted_post_id, " +
+            "p.is_edited, p.edited_at, p.created_at, p.updated_at, p.deleted_at " +
+            "FROM posts p " +
+            "WHERE p.deleted_at IS NULL AND p.search_vector @@ plainto_tsquery('english', :query) " +
+            "ORDER BY ts_rank(p.search_vector, plainto_tsquery('english', :query)) DESC, p.created_at DESC " +
+            "LIMIT :limit OFFSET :offset",
+            nativeQuery = true)
+    List<Post> searchPosts(@Param("query") String query,
+                           @Param("limit") int limit,
+                           @Param("offset") int offset);
 }

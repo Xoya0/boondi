@@ -1,7 +1,7 @@
 # Boondi — Project Progress & Session Memory
 
 > **Purpose:** Read this file FIRST in every new session before doing any work.
-> **Last updated:** 2026-07-06 | Sprint 5 complete — next is Sprint 6
+> **Last updated:** 2026-07-06 | Sprint 6 complete — next is Sprint 7
 
 ---
 
@@ -23,27 +23,28 @@ C:\Users\dibya\Documents\Boondi\
 ├── doc/                          ← All planning documents
 ├── backend/src/main/java/com/boondi/
 │   ├── domain/
-│   │   ├── entity/   User, Post, EmailVerification, PasswordResetToken, Follow, PostLike, PostRepost, PostBookmark
-│   │   ├── enums/    UserRole
-│   │   └── repository/ UserRepository, PostRepository, EmailVerificationRepository, PasswordResetTokenRepository, FollowRepository, PostLikeRepository, PostRepostRepository, PostBookmarkRepository
+│   │   ├── entity/   User, Post, EmailVerification, PasswordResetToken, Follow, PostLike, PostRepost, PostBookmark, Notification, Hashtag, PostHashtag
+│   │   ├── enums/    UserRole, NotificationType
+│   │   └── repository/ UserRepository, PostRepository, EmailVerificationRepository, PasswordResetTokenRepository, FollowRepository, PostLikeRepository, PostRepostRepository, PostBookmarkRepository, NotificationRepository, HashtagRepository, PostHashtagRepository
 │   ├── application/
 │   │   ├── dto/request/   Register, Login, Logout, Refresh, ForgotPassword, ResetPassword, UpdateProfile, CreatePost, UpdatePost
-│   │   ├── dto/response/  AuthResponse, UserResponse, MessageResponse, UploadResponse, PostResponse, CursorPage
-│   │   ├── mapper/        UserMapper, PostMapper
-│   │   └── service/       AuthService, EmailVerificationService, PasswordResetService, TokenService, UserService, PostService, TimelineService, InteractionService, FollowService, PostViewerStateService, TimelineCacheService
+│   │   ├── dto/response/  AuthResponse, UserResponse, MessageResponse, UploadResponse, PostResponse, CursorPage, NotificationResponse, HashtagResponse
+│   │   ├── mapper/        UserMapper, PostMapper, NotificationMapper
+│   │   └── service/       AuthService, EmailVerificationService, PasswordResetService, TokenService, UserService, PostService, TimelineService, InteractionService, FollowService, PostViewerStateService, TimelineCacheService, NotificationService, SearchService
 │   ├── infrastructure/
 │   │   ├── security/  JwtTokenProvider, JwtAuthenticationFilter, CustomUserDetailsService
 │   │   ├── config/    SecurityConfig, RedisConfig, CorsConfig, SwaggerConfig, StorageConfig, MailConfig
 │   │   ├── service/   EmailService, StorageService
 │   │   └── exception/ ErrorCode, BoondiException, GlobalExceptionHandler, ApiResponse
 │   └── presentation/controller/
-│       AuthController, HealthController, UserController, PostController, TimelineController
+│       AuthController, HealthController, UserController, PostController, TimelineController, NotificationController, SearchController, HashtagController
 ├── backend/src/main/resources/db/migration/
 │   V1__create_users_table.sql
 │   V2__create_auth_token_tables.sql
 │   V3__create_posts_table.sql
 │   V4__create_follows_table.sql
 │   V5__create_interaction_tables.sql
+│   V6__create_notifications_and_search.sql
 ├── web/src/
 │   ├── api/         client.ts, auth.ts, users.ts, posts.ts, timelines.ts
 │   ├── store/       authStore.ts (Zustand + persist)
@@ -72,7 +73,7 @@ C:\Users\dibya\Documents\Boondi\
 | Sprint 3 | Aug 4–15, 2026 | Post CRUD APIs + Web project init + Web auth screens | ✅ COMPLETE |
 | Sprint 4 | Aug 18–29, 2026 | Timeline APIs + Web profile + Post UI | ✅ COMPLETE |
 | Sprint 5 | Sep 1–12, 2026 | Social interactions APIs + Web feed complete | ✅ COMPLETE |
-| Sprint 6 | Sep 15–26, 2026 | Notifications + Search + Web social UI | ⏳ Pending |
+| Sprint 6 | Sep 15–26, 2026 | Notifications + Search + Web social UI | ✅ COMPLETE |
 | Sprint 7 | Sep 29–Oct 10, 2026 | Web feature complete + Android init + Android auth | ⏳ Pending |
 | Sprint 8 | Oct 13–24, 2026 | Android core (feed, posts, profiles) | ⏳ Pending |
 | Sprint 9 | Oct 27–Nov 7, 2026 | Android social + notifications + Admin panel | ⏳ Pending |
@@ -242,9 +243,62 @@ Post CRUD backend (E4-01→E4-05), React+Vite+Tailwind web init, Login/Register/
 - `PostService.getPost(postId, viewerId)` · `UserService.getProfile(username, viewerId)`
 - `TimelineService.getLatestTimeline(viewerId, cursor, limit)` / `getUserTimeline(viewerId, username, cursor, limit)` — viewerId first.
 
+## Sprint 6 — COMPLETE ✅
+
+**Sprint Goal (per Sprint-and-Release-Plan.md §6):** Notifications system + search APIs complete; web like/bookmark interactions polished with optimistic UI.
+
+| ID | Story | Status |
+|----|-------|--------|
+| E7-01 | Backend: Notification creation service (fan-out on like/repost/reply/follow) | ✅ |
+| E7-02 | Backend: Get notifications — GET /notifications (cursor-paginated) | ✅ |
+| E7-03 | Backend: Mark notification as read — PUT /notifications/{id}/read | ✅ |
+| E7-04 | Backend: Mark all read — PUT /notifications/read-all | ✅ |
+| E8-01 | Backend: Search users — GET /search/users?q= (ILIKE username/display name) | ✅ |
+| E8-02 | Backend: Search posts — GET /search/posts?q= (PostgreSQL tsvector full-text) | ✅ |
+| E8-03 | Backend: Search hashtags — GET /search/hashtags?q= (prefix match) | ✅ |
+| E8-04 | Backend: Hashtag extraction on post create (#word → hashtags + post_hashtags) | ✅ |
+| E8-05 | Backend: Trending hashtags — GET /hashtags/trending (24h window, Redis-cached) | ✅ |
+| E6-09 | Web: Like button with optimistic update + heart-fill animation | ✅ |
+| E6-10 | Web: Bookmark button (toggle, persists via API) | ✅ (done in Sprint 5, verified here) |
+
+### Key Technical Details (Sprint 6)
+
+**Flyway V6:** `notifications` (recipient_id, actor_id, type, post_id nullable, is_read), `hashtags` (unique `tag`), `post_hashtags` (composite PK like the Sprint 5 interaction tables). Also alters `posts` to add a generated `search_vector tsvector` column (`GENERATED ALWAYS AS (to_tsvector('english', content)) STORED`) + GIN index — required before E8-02 could be written, per the sprint plan's own risk note.
+
+**Notifications (NotificationService) — fan-out on write, not on read:**
+- 4 types: `LIKE`, `REPOST`, `REPLY`, `FOLLOW`. No `MENTION` type — the plan's epic goal mentions "mentions" but no `@user` parsing story exists anywhere in the backlog, so it's out of scope; flagged here in case a future sprint adds it.
+- Quote-post creation triggers a `REPOST` notification (not a separate type) — consistent with Sprint 5's decision that quotes count toward the repost total on the post itself.
+- Self-notifications are always skipped (liking/replying to your own post, or the already-blocked self-follow).
+- Triggered from: `InteractionService.like()`/`repost()`, `PostService.createPost()` (reply → parent author, quote → quoted author), `FollowService.follow()`.
+- `NotificationResponse` embeds a shallow actor (id/username/displayName/avatar) + optional `postId`/`postContentPreview` (first 80 chars, null for FOLLOW). Soft-deleted related posts degrade to null preview rather than throwing (same `EntityNotFoundException` pattern as Sprint 5's quote/parent handling).
+- No dedicated unread-count endpoint — out of scope for Sprint 6 (that's Web story E7-07 in Sprint 7); clients can page through `GET /notifications` and use the `isRead` flag per item.
+
+**Search (SearchService) — three sources, one pagination style:**
+- All three (`users`, `posts`, `hashtags`) paginate with a **numeric offset cursor**, same pattern as Sprint 5's trending timeline — relevance/prefix order isn't a stable time-based cursor. Capped at offset 500.
+- Blank/whitespace `q` short-circuits to an empty page before hitting the DB.
+- **Users:** native ILIKE query on `username` OR `display_name`, ordered alphabetically.
+- **Posts:** native query against `search_vector @@ plainto_tsquery('english', :query)`, ordered by `ts_rank` then recency. Uses an explicit column list (not `SELECT *`) so Hibernate's entity-result mapping doesn't choke on the unmapped `search_vector` column. Known trade-off: author is lazy-loaded per result (N+1) rather than fetch-joined — not expressible cleanly in a native query without a `SqlResultSetMapping`; acceptable at page sizes ≤50.
+- **Hashtags:** prefix match (`ILIKE 'query%'`), leading `#` stripped and lowercased before matching.
+
+**Hashtag extraction (E8-04) — in `PostService.createPost`:**
+- Regex `#(\w+)` over post content, tags deduped (case-insensitive, stored lowercase) via a `LinkedHashSet`, find-or-create each `Hashtag`, then insert a `PostHashtag` link row. No extraction on edit (out of scope — plan only specifies "on post create").
+
+**Trending hashtags (E8-05):**
+- `GET /hashtags/trending` — top 10 by usage count in the last 24h, computed via a JPQL query joining `post_hashtags`→`hashtags` with a subquery restricting to non-deleted posts (Post's `@SQLRestriction` applies automatically inside the subquery).
+- Redis-cached at key `hashtags:trending`, TTL 10 minutes, same JSON-via-ObjectMapper + graceful-degrade-on-Redis-failure pattern as Sprint 5's `TimelineCacheService`.
+
+**Web — PostCard like button (E6-09):**
+- Now optimistic: flips `likedByViewer`/`likeCount` locally before the API call resolves, reverts on failure (previous Sprint 5 behavior waited for the server response first).
+- Heart icon gets a `scale-125 → scale-100` transition (300ms) on like — pure Tailwind transition classes, no new dependency.
+- Bookmark/repost intentionally left non-optimistic (only Like was called out for animation + optimistic update in the sprint plan).
+
+**New ErrorCodes:** `NOTIFICATION_NOT_FOUND`, `NOTIFICATION_ACCESS_DENIED` (marking someone else's notification as read).
+
+**SecurityConfig new public GETs:** `/search/users`, `/search/posts`, `/search/hashtags`, `/hashtags/trending`. `/notifications/**` has no public routes — auth required for all (falls through to `anyRequest().authenticated()`).
+
 ---
 
-## Backend API Summary (Sprints 1–5)
+## Backend API Summary (Sprints 1–6)
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
@@ -279,6 +333,13 @@ Post CRUD backend (E4-01→E4-05), React+Vite+Tailwind web init, Login/Register/
 | GET | /timelines/latest | Public | Latest timeline (cursor) |
 | GET | /timelines/trending | Public | Trending 24h (offset cursor) |
 | GET | /timelines/home | Required | Home timeline (cursor, Redis-cached first page) |
+| GET | /notifications | Required | Get notifications (cursor) |
+| PUT | /notifications/{id}/read | Required | Mark notification read |
+| PUT | /notifications/read-all | Required | Mark all notifications read |
+| GET | /search/users?q= | Public | Search users (offset cursor) |
+| GET | /search/posts?q= | Public | Full-text search posts (offset cursor) |
+| GET | /search/hashtags?q= | Public | Search hashtags by prefix (offset cursor) |
+| GET | /hashtags/trending | Public | Top 10 hashtags, last 24h (Redis-cached) |
 | GET | /health | Public | Health check |
 
 ---
@@ -313,25 +374,26 @@ Web:    http://localhost:5173 (Vite dev server)
 | Epic 3 | User Profiles | 20 | 17 | 3 (Android Sprint 8) |
 | Epic 4 | Posts | 29 | 22 | 7 (Android Sprint 8) |
 | Epic 5 | Timeline & Feed | 31 | 18 | 13 (Web trending tab Sprint 7, Android Sprint 8) |
-| Epic 6 | Social Interactions | 41 | 25 | 16 (Web social UI Sprint 6, Android Sprint 9) |
-| Epic 7 | Notifications | 20 | 0 | 20 |
-| Epic 8 | Search | 23 | 0 | 23 |
+| Epic 6 | Social Interactions | 41 | 28 | 13 (Web reply composer/quote UI/bookmarks page/followers-following pages Sprint 7, Android Sprint 9) |
+| Epic 7 | Notifications | 20 | 9 | 11 (Web notifications UI Sprint 7, Android Sprint 9) |
+| Epic 8 | Search | 23 | 15 | 8 (Web search UI Sprint 7, Android Sprint 9) |
 | Epic 9 | Admin | 16 | 0 | 16 |
 | Epic 10 | Polish/Testing/Launch | 50 | 0 | 50 |
 
 ---
 
-## Sprint 6 Preview (next session)
+## Sprint 7 Preview (next session)
 
-**Focus (per sprint plan):** Notifications + Search + Web social UI.
+**Focus (per Sprint-and-Release-Plan.md §6, Sprint 7):** Web app feature-complete for MVP + Android project init + Android auth screens.
 
-**Likely stories:** Epic 7 notification backend (notification entity/table, fan-out on like/reply/repost/follow, list + mark-read APIs), Epic 8 search backend (users + posts search), Web social UI (followers/following list pages, quote-post composer UI, notifications screen, search screen).
+**Committed stories per the plan:** E6-11 (Follow/Unfollow button — *already done in Sprint 5*, verify only), E6-12 (Reply composer — mostly done via PostDetailPage's `PostComposer parentPostId`, verify against story wording), E6-13 (Repost/Quote UI — dropdown for Repost vs Quote; quote composer entry point still missing), E6-14 (Bookmarks page `/bookmarks`), E6-15 (Followers/Following pages `/profile/:username/followers|following` — backend + API client already exist from Sprint 5), E7-05/06/07 (Notifications page + item component + unread badge), E8-06/07 (Search page with tabs + debounced input), E5-06/07 (Feed tabs Home/Latest/Trending + infinite scroll), E1-07 (Initialize Android project).
 
-**Useful groundwork already in place from Sprint 5:**
-- All interaction endpoints return updated PostResponse — notification hooks go in InteractionService/PostService/FollowService.
+**Useful groundwork already in place from Sprints 5–6:**
 - `usersApi.getFollowers/getFollowing` + backend list endpoints exist — web list pages just need UI.
-- `timelinesApi.getTrending` exists — a Trending tab on HomePage is trivial to add.
-- Quote backend done (`quotedPostId` on createPost + embed rendering in PostCard) — only a "Quote" composer entry point is missing in the UI.
+- `timelinesApi.getTrending` exists — a Trending tab on HomePage is mostly wiring.
+- Quote backend done (`quotedPostId` on createPost + embed rendering in PostCard) — only the "Repost vs Quote" dropdown + quote composer entry point is missing in the UI.
+- `postsApi` has bookmark/unbookmark — a `/bookmarks` page needs a new backend list endpoint (`GET /users/me/bookmarks` or similar) since none exists yet — check the plan before assuming E6-14 is UI-only.
+- Notification and search REST APIs are complete and cursor-paginated — E7-05/06/07 and E8-06/07 are pure UI work against existing endpoints.
 
 ---
 
@@ -348,4 +410,4 @@ Web:    http://localhost:5173 (Vite dev server)
 
 ---
 
-*Last updated: 2026-07-06 | Sprint 5 complete*
+*Last updated: 2026-07-06 | Sprint 6 complete*

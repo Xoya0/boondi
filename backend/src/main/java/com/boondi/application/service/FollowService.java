@@ -35,6 +35,7 @@ public class FollowService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final TimelineCacheService timelineCacheService;
+    private final NotificationService notificationService;
 
     @Transactional
     public UserResponse follow(UUID followerId, String username) {
@@ -62,6 +63,8 @@ public class FollowService {
 
         // Follower's home timeline now includes the target's posts
         timelineCacheService.evictHome(followerId);
+
+        notificationService.notifyFollow(followerId, target.getId());
 
         log.info("User followed: followerId={}, followee={}", followerId, username);
         UserResponse response = userMapper.toResponse(target);

@@ -37,6 +37,7 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
   const [post, setPost] = useState(initialPost)
   const [deleting, setDeleting] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [justLiked, setJustLiked] = useState(false)
   const isOwner = user?.id === post.author.id
 
   // Resync when the parent renders a different post into this card slot
@@ -70,8 +71,33 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
     }
   }
 
-  const toggleLike = () =>
-    toggle(() => (post.likedByViewer ? postsApi.unlike(post.id) : postsApi.like(post.id)))
+  const toggleLike = async () => {
+    if (busy) return
+    const original = post
+    const wasLiked = original.likedByViewer
+
+    // Optimistic update — flip immediately so the heart fills without waiting on the network
+    setPost({
+      ...original,
+      likedByViewer: !wasLiked,
+      likeCount: original.likeCount + (wasLiked ? -1 : 1),
+    })
+    if (!wasLiked) {
+      setJustLiked(true)
+      setTimeout(() => setJustLiked(false), 300)
+    }
+
+    setBusy(true)
+    try {
+      const updated = wasLiked ? await postsApi.unlike(original.id) : await postsApi.like(original.id)
+      setPost(updated)
+    } catch {
+      setPost(original)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const toggleRepost = () =>
     toggle(() => (post.repostedByViewer ? postsApi.unrepost(post.id) : postsApi.repost(post.id)))
   const toggleBookmark = () =>
@@ -206,7 +232,7 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
             title={post.likedByViewer ? 'Unlike' : 'Like'}
           >
             <svg
-              className="w-4 h-4"
+              className={`w-4 h-4 transition-transform duration-300 ${justLiked ? 'scale-125' : 'scale-100'}`}
               fill={post.likedByViewer ? 'currentColor' : 'none'}
               stroke="currentColor"
               viewBox="0 0 24 24"

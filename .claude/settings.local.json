@@ -18,7 +18,8 @@
       "Bash(npm install *)",
       "Bash(npx tailwindcss *)",
       "Bash(./node_modules/.bin/tailwindcss init *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(./mvnw.cmd -q compile)"
     ]
   }
 }

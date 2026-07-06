@@ -230,4 +230,20 @@ public class BoondiException extends RuntimeException {
                 "You cannot follow yourself"
         );
     }
+
+    public static BoondiException notificationNotFound(String notificationId) {
+        return new BoondiException(
+                ErrorCode.NOTIFICATION_NOT_FOUND,
+                HttpStatus.NOT_FOUND,
+                "Notification not found: " + notificationId
+        );
+    }
+
+    public static BoondiException notificationAccessDenied() {
+        return new BoondiException(
+                ErrorCode.NOTIFICATION_ACCESS_DENIED,
+                HttpStatus.FORBIDDEN,
+                "You are not authorized to access this notification"
+        );
+    }
 }
