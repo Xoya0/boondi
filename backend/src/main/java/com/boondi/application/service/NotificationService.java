@@ -120,6 +120,11 @@ public class NotificationService {
         log.info("All notifications marked read for userId={}", userId);
     }
 
+    @Transactional(readOnly = true)
+    public long getUnreadCount(UUID userId) {
+        return notificationRepository.countByRecipientIdAndReadFalse(userId);
+    }
+
     private int clampLimit(int requested) {
         return Math.min(Math.max(requested, 1), MAX_LIMIT);
     }

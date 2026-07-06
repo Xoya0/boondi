@@ -4,6 +4,7 @@ import type { CursorPage, Post } from '../types'
 import { postsApi } from '../api/posts'
 import PostCard from '../components/posts/PostCard'
 import PostComposer from '../components/posts/PostComposer'
+import InfiniteScrollSentinel from '../components/shared/InfiniteScrollSentinel'
 
 export default function PostDetailPage() {
   const { postId } = useParams<{ postId: string }>()
@@ -136,16 +137,12 @@ export default function PostDetailPage() {
             <PostCard key={reply.id} post={reply} onDeleted={handleReplyDeleted} />
           ))}
 
-          {repliesPage?.hasMore && (
-            <div className="flex justify-center py-4">
-              <button
-                onClick={loadMoreReplies}
-                disabled={loadingMore}
-                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium cursor-pointer disabled:text-indigo-400"
-              >
-                {loadingMore ? 'Loading…' : 'Load more replies'}
-              </button>
-            </div>
+          {repliesPage && (
+            <InfiniteScrollSentinel
+              hasMore={repliesPage.hasMore}
+              loading={loadingMore}
+              onLoadMore={loadMoreReplies}
+            />
           )}
         </>
       )}

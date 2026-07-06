@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Manifest-level theme only; Compose applies the real Material3 theme in BoondiTheme -->
+    <style name="Theme.Boondi" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

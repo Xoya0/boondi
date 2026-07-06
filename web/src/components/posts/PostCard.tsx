@@ -1,34 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { Post } from '../../types'
 import { formatRelativeTime } from '../../utils/time'
 import { postsApi } from '../../api/posts'
 import { useAuthStore } from '../../store/authStore'
+import Avatar from '../shared/Avatar'
+import QuotedPostPreview from './QuotedPostPreview'
+import QuoteComposerModal from './QuoteComposerModal'
 
 interface PostCardProps {
   post: Post
   onDeleted?: (postId: string) => void
   // When false, clicking the card body does not navigate (used on the detail page itself)
   linkToDetail?: boolean
-}
-
-function Avatar({ src, alt }: { src: string | null; alt: string }) {
-  if (src) {
-    return (
-      <img
-        src={src}
-        alt={alt}
-        className="w-10 h-10 rounded-full object-cover bg-gray-200 flex-shrink-0"
-      />
-    )
-  }
-  return (
-    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-      <span className="text-indigo-600 font-semibold text-sm">
-        {alt.charAt(0).toUpperCase()}
-      </span>
-    </div>
-  )
 }
 
 export default function PostCard({ post: initialPost, onDeleted, linkToDetail = true }: PostCardProps) {
@@ -38,10 +22,25 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
   const [deleting, setDeleting] = useState(false)
   const [busy, setBusy] = useState(false)
   const [justLiked, setJustLiked] = useState(false)
+  const [repostMenuOpen, setRepostMenuOpen] = useState(false)
+  const [showQuoteComposer, setShowQuoteComposer] = useState(false)
+  const repostMenuRef = useRef<HTMLDivElement>(null)
   const isOwner = user?.id === post.author.id
 
   // Resync when the parent renders a different post into this card slot
   useEffect(() => setPost(initialPost), [initialPost])
+
+  // Close the repost/quote menu on outside click
+  useEffect(() => {
+    if (!repostMenuOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (repostMenuRef.current && !repostMenuRef.current.contains(e.target as Node)) {
+        setRepostMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [repostMenuOpen])
 
   const handleDelete = async () => {
     if (!confirm('Delete this post?')) return
@@ -98,8 +97,25 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
     }
   }
 
-  const toggleRepost = () =>
-    toggle(() => (post.repostedByViewer ? postsApi.unrepost(post.id) : postsApi.repost(post.id)))
+  const handleRepostButtonClick = () => {
+    if (post.repostedByViewer) {
+      // Already reposted — clicking again undoes it directly, no menu needed
+      toggle(() => postsApi.unrepost(post.id))
+      return
+    }
+    setRepostMenuOpen(open => !open)
+  }
+
+  const handleRepost = () => {
+    setRepostMenuOpen(false)
+    toggle(() => postsApi.repost(post.id))
+  }
+
+  const handleQuote = () => {
+    setRepostMenuOpen(false)
+    setShowQuoteComposer(true)
+  }
+
   const toggleBookmark = () =>
     toggle(() => (post.bookmarkedByViewer ? postsApi.unbookmark(post.id) : postsApi.bookmark(post.id)))
 
@@ -114,6 +130,7 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
         <Avatar
           src={post.author.profilePictureUrl}
           alt={post.author.displayName ?? post.author.username}
+          size="sm"
         />
       </Link>
 
@@ -163,31 +180,14 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
 
         {/* Quoted post embed */}
         {post.quotedPost && (
-          <div
-            onClick={e => {
-              e.stopPropagation()
-              navigate(`/post/${post.quotedPost!.id}`)
-            }}
-            className="mt-2 border border-gray-200 rounded-xl px-3 py-2 hover:bg-gray-100 transition-colors cursor-pointer"
-          >
-            <div className="flex items-center gap-1.5 text-xs">
-              <span className="font-semibold text-gray-900">
-                {post.quotedPost.author.displayName ?? post.quotedPost.author.username}
-              </span>
-              <span className="text-gray-400">@{post.quotedPost.author.username}</span>
-              <span className="text-gray-300">·</span>
-              <span className="text-gray-400">{formatRelativeTime(post.quotedPost.createdAt)}</span>
-            </div>
-            <p className="text-gray-700 text-sm mt-0.5 whitespace-pre-wrap break-words line-clamp-3">
-              {post.quotedPost.content}
-            </p>
-            {post.quotedPost.imageUrl && (
-              <img
-                src={post.quotedPost.imageUrl}
-                alt=""
-                className="mt-1.5 rounded-lg max-h-40 object-cover border border-gray-100"
-              />
-            )}
+          <div className="mt-2">
+            <QuotedPostPreview
+              quotedPost={post.quotedPost}
+              onClick={e => {
+                e.stopPropagation()
+                navigate(`/post/${post.quotedPost!.id}`)
+              }}
+            />
           </div>
         )}
 
@@ -206,21 +206,40 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
             <span>{post.replyCount}</span>
           </button>
 
-          {/* Repost */}
-          <button
-            onClick={toggleRepost}
-            disabled={busy}
-            className={`flex items-center gap-1.5 text-xs transition-colors cursor-pointer disabled:opacity-60 ${
-              post.repostedByViewer ? 'text-green-600' : 'text-gray-400 hover:text-green-500'
-            }`}
-            title={post.repostedByViewer ? 'Undo repost' : 'Repost'}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span>{post.repostCount}</span>
-          </button>
+          {/* Repost / Quote dropdown (E6-13) */}
+          <div className="relative" ref={repostMenuRef}>
+            <button
+              onClick={handleRepostButtonClick}
+              disabled={busy}
+              className={`flex items-center gap-1.5 text-xs transition-colors cursor-pointer disabled:opacity-60 ${
+                post.repostedByViewer ? 'text-green-600' : 'text-gray-400 hover:text-green-500'
+              }`}
+              title={post.repostedByViewer ? 'Undo repost' : 'Repost or quote'}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>{post.repostCount}</span>
+            </button>
+
+            {repostMenuOpen && (
+              <div className="absolute bottom-full left-0 mb-1 w-36 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-20">
+                <button
+                  onClick={handleRepost}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
+                >
+                  Repost
+                </button>
+                <button
+                  onClick={handleQuote}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
+                >
+                  Quote
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Like */}
           <button
@@ -279,6 +298,10 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
           )}
         </div>
       </div>
+
+      {showQuoteComposer && (
+        <QuoteComposerModal post={post} onClose={() => setShowQuoteComposer(false)} />
+      )}
     </article>
   )
 }

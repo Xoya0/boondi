@@ -102,6 +102,18 @@ public class UserController {
                 followService.getFollowing(username, cursor, limit)));
     }
 
+    @GetMapping("/me/bookmarks")
+    @Operation(summary = "Get the authenticated user's bookmarked posts, most recently bookmarked first")
+    public ResponseEntity<ApiResponse<CursorPage<PostResponse>>> getMyBookmarks(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Parameter(description = "Pagination cursor (ISO-8601 from previous nextCursor)")
+            @RequestParam(required = false) String cursor,
+            @Parameter(description = "Page size (1–50, default 20)")
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(ApiResponse.success(
+                timelineService.getBookmarkedTimeline(userDetails.getUser().getId(), cursor, limit)));
+    }
+
     @PutMapping("/me")
     @Operation(summary = "Update the authenticated user's profile")
     public ResponseEntity<ApiResponse<UserResponse>> updateProfile(

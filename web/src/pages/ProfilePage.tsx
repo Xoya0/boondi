@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { CursorPage, Post, UserProfile } from '../types'
 import { usersApi } from '../api/users'
 import { useAuthStore } from '../store/authStore'
 import PostCard from '../components/posts/PostCard'
 import EditProfileModal from '../components/profile/EditProfileModal'
+import InfiniteScrollSentinel from '../components/shared/InfiniteScrollSentinel'
 import { formatFullDate } from '../utils/time'
 
-function StatPill({ value, label }: { value: number; label: string }) {
+function StatPill({ value, label, to }: { value: number; label: string; to: string }) {
   return (
-    <div className="text-sm">
+    <Link to={to} className="text-sm hover:underline">
       <span className="font-bold text-gray-900">{value.toLocaleString()}</span>{' '}
       <span className="text-gray-500">{label}</span>
-    </div>
+    </Link>
   )
 }
 
@@ -206,8 +207,8 @@ export default function ProfilePage() {
 
         {/* Stats */}
         <div className="flex gap-4">
-          <StatPill value={profile.followingCount} label="Following" />
-          <StatPill value={profile.followerCount} label="Followers" />
+          <StatPill value={profile.followingCount} label="Following" to={`/profile/${profile.username}/following`} />
+          <StatPill value={profile.followerCount} label="Followers" to={`/profile/${profile.username}/followers`} />
         </div>
       </div>
 
@@ -227,16 +228,12 @@ export default function ProfilePage() {
             <PostCard key={post.id} post={post} onDeleted={handlePostDeleted} />
           ))}
 
-          {postsPage?.hasMore && (
-            <div className="flex justify-center py-4">
-              <button
-                onClick={loadMorePosts}
-                disabled={loadingMore}
-                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium cursor-pointer disabled:text-indigo-400"
-              >
-                {loadingMore ? 'Loading…' : 'Load more posts'}
-              </button>
-            </div>
+          {postsPage && (
+            <InfiniteScrollSentinel
+              hasMore={postsPage.hasMore}
+              loading={loadingMore}
+              onLoadMore={loadMorePosts}
+            />
           )}
         </>
       )}

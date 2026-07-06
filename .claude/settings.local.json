@@ -19,7 +19,12 @@
       "Bash(npx tailwindcss *)",
       "Bash(./node_modules/.bin/tailwindcss init *)",
       "Bash(npm run *)",
-      "Bash(./mvnw.cmd -q compile)"
+      "Bash(./mvnw.cmd -q compile)",
+      "Bash(git -C \"c:\\\\Users\\\\dibya\\\\Documents\\\\Boondi\" log --all --oneline)",
+      "Bash(git -C \"c:\\\\Users\\\\dibya\\\\Documents\\\\Boondi\" branch -a)",
+      "Read(//c/Users/dibya/.gradle/wrapper/dists/**)",
+      "Read(//c/Program Files/Android/Android Studio/**)",
+      "Read(//c/Program Files/Android/Android Studio/plugins/**)"
     ]
   }
 }

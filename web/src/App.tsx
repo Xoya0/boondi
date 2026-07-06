@@ -7,6 +7,10 @@ import ResetPasswordPage from './pages/ResetPasswordPage'
 import HomePage from './pages/HomePage'
 import ProfilePage from './pages/ProfilePage'
 import PostDetailPage from './pages/PostDetailPage'
+import BookmarksPage from './pages/BookmarksPage'
+import FollowListPage from './pages/FollowListPage'
+import NotificationsPage from './pages/NotificationsPage'
+import SearchPage from './pages/SearchPage'
 
 export default function App() {
   return (
@@ -24,7 +28,12 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/home" element={<HomePage />} />
           <Route path="/profile/:username" element={<ProfilePage />} />
+          <Route path="/profile/:username/followers" element={<FollowListPage />} />
+          <Route path="/profile/:username/following" element={<FollowListPage />} />
           <Route path="/post/:postId" element={<PostDetailPage />} />
+          <Route path="/bookmarks" element={<BookmarksPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/search" element={<SearchPage />} />
         </Route>
 
         {/* Default */}

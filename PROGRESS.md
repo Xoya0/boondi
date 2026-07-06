@@ -1,7 +1,7 @@
 # Boondi — Project Progress & Session Memory
 
 > **Purpose:** Read this file FIRST in every new session before doing any work.
-> **Last updated:** 2026-07-06 | Sprint 6 complete — next is Sprint 7
+> **Last updated:** 2026-07-06 | Sprint 7 complete — next is Sprint 8
 
 ---
 
@@ -46,17 +46,27 @@ C:\Users\dibya\Documents\Boondi\
 │   V5__create_interaction_tables.sql
 │   V6__create_notifications_and_search.sql
 ├── web/src/
-│   ├── api/         client.ts, auth.ts, users.ts, posts.ts, timelines.ts
+│   ├── api/         client.ts, auth.ts, users.ts, posts.ts, timelines.ts, notifications.ts, search.ts
 │   ├── store/       authStore.ts (Zustand + persist)
 │   ├── router/      index.tsx (ProtectedRoute, PublicOnlyRoute)
-│   ├── types/       index.ts (UserInfo, UserProfile, Post, PostAuthor, CursorPage, ApiResponse)
+│   ├── hooks/       useInfiniteScroll.ts
+│   ├── types/       index.ts (UserInfo, UserProfile, Post, PostAuthor, QuotedPost, Notification, Hashtag, CursorPage, ApiResponse)
 │   ├── utils/       time.ts (formatRelativeTime, formatFullDate)
 │   ├── components/
-│   │   ├── auth/    AuthLayout.tsx
-│   │   ├── posts/   PostCard.tsx, PostComposer.tsx
-│   │   └── profile/ EditProfileModal.tsx
+│   │   ├── auth/          AuthLayout.tsx
+│   │   ├── posts/         PostCard.tsx, PostComposer.tsx, QuotedPostPreview.tsx, QuoteComposerModal.tsx
+│   │   ├── profile/       EditProfileModal.tsx
+│   │   ├── notifications/ NotificationItem.tsx
+│   │   └── shared/        Avatar.tsx, UserListItem.tsx, InfiniteScrollSentinel.tsx
 │   └── pages/
-│       LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage, HomePage, ProfilePage, PostDetailPage
+│       LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage, HomePage, ProfilePage,
+│       PostDetailPage, BookmarksPage, FollowListPage, NotificationsPage, SearchPage
+├── android/                      ← Kotlin + Jetpack Compose + Hilt (scaffolded Sprint 7, unverified build)
+│   ├── app/src/main/java/com/boondi/android/
+│   │   ├── BoondiApplication.kt (@HiltAndroidApp), MainActivity.kt (@AndroidEntryPoint)
+│   │   ├── navigation/BoondiNavHost.kt
+│   │   └── ui/screens/SplashScreen.kt, ui/theme/{Color,Type,Theme}.kt
+│   └── gradle/libs.versions.toml (AGP 8.5.2, Kotlin 2.0.21, Compose BOM 2024.09.03, Hilt 2.52)
 ├── docker-compose.yml
 ├── nginx/nginx.conf
 └── .gitignore
@@ -74,7 +84,7 @@ C:\Users\dibya\Documents\Boondi\
 | Sprint 4 | Aug 18–29, 2026 | Timeline APIs + Web profile + Post UI | ✅ COMPLETE |
 | Sprint 5 | Sep 1–12, 2026 | Social interactions APIs + Web feed complete | ✅ COMPLETE |
 | Sprint 6 | Sep 15–26, 2026 | Notifications + Search + Web social UI | ✅ COMPLETE |
-| Sprint 7 | Sep 29–Oct 10, 2026 | Web feature complete + Android init + Android auth | ⏳ Pending |
+| Sprint 7 | Sep 29–Oct 10, 2026 | Web feature complete + Android init | ✅ COMPLETE |
 | Sprint 8 | Oct 13–24, 2026 | Android core (feed, posts, profiles) | ⏳ Pending |
 | Sprint 9 | Oct 27–Nov 7, 2026 | Android social + notifications + Admin panel | ⏳ Pending |
 | Sprint 10 | Nov 10–20, 2026 | Polish, tests, security, production deploy | ⏳ Pending |
@@ -296,9 +306,65 @@ Post CRUD backend (E4-01→E4-05), React+Vite+Tailwind web init, Login/Register/
 
 **SecurityConfig new public GETs:** `/search/users`, `/search/posts`, `/search/hashtags`, `/hashtags/trending`. `/notifications/**` has no public routes — auth required for all (falls through to `anyRequest().authenticated()`).
 
+## Sprint 7 — COMPLETE ✅
+
+**Sprint Goal (per Sprint-and-Release-Plan.md §6, Sprint 7):** Web app feature-complete for MVP + Android project initialized. Note: the plan's one-line phase summary in §6's intro table also says "+ Android auth," but Sprint 7's own detailed Committed Stories table only lists `E1-07` for Android — `E2-12/13/14` (Android login/registration/token storage) are in Sprint 8's table. Treated the detailed backlog as authoritative; Android auth work was not started this sprint.
+
+| ID | Story | Status |
+|----|-------|--------|
+| E6-11 | Web: Follow/Unfollow button on profile page | ✅ (done Sprint 5, unchanged) |
+| E6-12 | Web: Reply composer (threaded reply below post on detail page) | ✅ (done Sprint 5, unchanged) |
+| E6-13 | Web: Repost/Quote UI — dropdown (Repost or Quote), quote opens composer with embedded post | ✅ |
+| E6-14 | Web: Bookmarks page (`/bookmarks`) — paginated list of bookmarked posts | ✅ |
+| E6-15 | Web: Followers/Following page (`/profile/:username/followers`, `/following`) | ✅ |
+| E7-05 | Web: Notifications page (`/notifications`) | ✅ |
+| E7-06 | Web: Notification item component | ✅ |
+| E7-07 | Web: Unread count badge on bell icon in nav (polled 30s / on focus) | ✅ |
+| E8-06 | Web: Search page (`/search`) with tabs: Users / Posts / Hashtags | ✅ |
+| E8-07 | Web: Search input with 300ms debounce | ✅ |
+| E5-06 | Web: Feed tabs (Home / Latest / Trending) | ✅ |
+| E5-07 | Web: Infinite scroll (IntersectionObserver) on all feed/list pages | ✅ |
+| E1-07 | Initialize Android project (Compose + Hilt + Navigation Compose) | ✅ (scaffolded; **build unverified** — see note below) |
+
+### Key Technical Details (Sprint 7)
+
+**Backend groundwork added to unblock two web stories (flagged as gaps in the Sprint 6 review, not new scope — required infrastructure for E6-14/E7-07):**
+- `GET /users/me/bookmarks` — cursor-paginated bookmarked posts, sorted by *bookmark* time (not post creation time). New `PostRepository.findBookmarkedPosts` returns `[Post, bookmark.createdAt]` tuples (same tuple-row pattern as `FollowRepository.findFollowers/findFollowing`); `TimelineService.getBookmarkedTimeline` builds the page.
+- `GET /notifications/unread-count` — new `NotificationRepository.countByRecipientIdAndReadFalse` (derived query; `n.read` is the entity property per the existing `markAllAsRead` JPQL) + `NotificationService.getUnreadCount` + `UnreadCountResponse` DTO.
+
+**E6-13 — Repost/Quote dropdown:**
+- `PostCard`'s repost button now opens a small popover (`Repost` / `Quote`) instead of directly toggling — clicking when already reposted still directly undoes it (no menu, since there's only one action available). Closes on outside click via a `mousedown` listener.
+- `Quote` opens `QuoteComposerModal`, which wraps the existing `PostComposer` (now accepts an optional `quotedPost` prop) with the quoted-post preview and submits `quotedPostId`. On success, navigates to the new quote-post's detail page.
+- Extracted `QuotedPostPreview` out of `PostCard` so the same embed markup renders both an existing quote (read-only, clickable) and the in-progress quote in the composer (read-only, non-clickable).
+- Extracted `Avatar` into `components/shared/` (was a local function duplicated conceptually across pages) — `PostCard` and the new `UserListItem` both use it now.
+
+**E6-14/E6-15 — new list pages, one shared pattern:**
+- `BookmarksPage`, `FollowListPage` (shared for both `/followers` and `/following`, switching on `location.pathname`), `NotificationsPage`, and `SearchPage`'s per-tab results all follow the same shape: fetch first page in a `useEffect`, `loadMore()` appends via cursor, render via `InfiniteScrollSentinel`.
+- New shared `UserListItem` (avatar, name, handle, bio snippet, inline follow toggle) — used by `FollowListPage` and `SearchPage`'s Users tab.
+- `ProfilePage`'s Following/Followers `StatPill`s are now links to the new list pages.
+
+**E7-05/06/07 — Notifications:**
+- `NotificationItem` maps `NotificationType` → action text (`liked your post` / `reposted your post` / `replied to your post` / `followed you`), shows an unread dot + tinted background, marks itself read on click (optimistic local update, best-effort API call), then navigates to the post (or the actor's profile for `FOLLOW`, which has no `postId`).
+- Unread badge lives on `HomePage`'s top nav (the only persistent nav bar in this codebase — there's no shared app-shell/header component across pages). Polls every 30s and refetches on `visibilitychange`/`window focus`, per the story. **Known limitation:** the badge only appears on `/home`, not on other authenticated pages, since introducing a global layout was judged out of scope for this story (would touch every page). Worth a real app-shell if this becomes a real user complaint.
+
+**E8-06/07 — Search:**
+- Single `SearchPage` with local `inputValue` (immediate) and debounced `query` (300ms via `setTimeout`, no new dependency) that actually triggers fetches. Three independent `CursorPage` states (users/posts/hashtags), only the active tab's page is fetched/displayed; switching tabs re-fetches rather than caching all three (simpler, acceptable request volume for MVP).
+- Clicking a hashtag result sets the query to that tag and switches to the Posts tab — no separate hashtag-detail route exists (none was in the backlog).
+
+**E5-06/07 — Trending tab + infinite scroll:**
+- `HomePage` gained a third tab wired to `timelinesApi.getTrending` (already existed unused since Sprint 5/6).
+- New `useInfiniteScroll` hook (IntersectionObserver on a sentinel ref, guarded by `hasMore`/`loading`) + `InfiniteScrollSentinel` wrapper component replace every manual "Load more" button across `HomePage`, `ProfilePage`, `PostDetailPage` (replies), and all four new list pages — one consistent pagination UX everywhere, per the story's intent that this is the app-wide pagination pattern, not a single-page feature.
+
+**Android (E1-07) — scaffolded, not verified:**
+- `android/` created fresh: Gradle Kotlin DSL + version catalog (`libs.versions.toml`), AGP 8.5.2, Kotlin 2.0.21 with the Kotlin 2.0 Compose-compiler Gradle plugin (no `composeOptions.kotlinCompilerExtensionVersion` needed), Hilt 2.52 via KSP, Navigation Compose 2.8.2.
+- `BoondiApplication` (`@HiltAndroidApp`), `MainActivity` (`@AndroidEntryPoint`, edge-to-edge, sets Compose content), `BoondiNavHost` with a single placeholder `SplashScreen` route, and a `BoondiTheme` (Material3, indigo primary matching the web app's Tailwind indigo-600 brand, dynamic color opt-out by default).
+- `minSdk 26` chosen so the adaptive launcher icon (`mipmap-anydpi-v26`) needs no legacy PNG fallback.
+- **No Retrofit/OkHttp dependency added** — E1-07's story text only names Compose + Hilt + Navigation Compose; Retrofit is added when Sprint 8's `E2-14` (token storage + refresh interceptor) actually needs it, to avoid an unused dependency.
+- **⚠️ Build is unverified.** This dev environment has no Android SDK and no network access to fetch a Gradle wrapper JAR, so `gradlew`/`gradlew.bat`/`gradle-wrapper.jar` were **not** created (a wrapper script pointing at a missing jar is worse than no wrapper). Opening `android/` in Android Studio will prompt to generate the wrapper automatically. Exact dependency versions (AGP/Compose BOM/Hilt/KSP patch numbers) are plausible-current but unverified against Maven Central — expect Android Studio to suggest updates on first sync. **Next session: open in Android Studio and fix whatever the first sync surfaces before writing any more Android code.**
+
 ---
 
-## Backend API Summary (Sprints 1–6)
+## Backend API Summary (Sprints 1–7)
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
@@ -314,6 +380,7 @@ Post CRUD backend (E4-01→E4-05), React+Vite+Tailwind web init, Login/Register/
 | PUT | /users/me | Required | Update profile |
 | POST | /users/me/avatar | Required | Upload avatar |
 | POST | /users/me/banner | Required | Upload banner |
+| GET | /users/me/bookmarks | Required | Bookmarked posts, most recently bookmarked first (cursor) |
 | POST | /posts | Required | Create post |
 | GET | /posts/{id} | Public | Get post |
 | PUT | /posts/{id} | Required | Edit post (30-min window) |
@@ -336,6 +403,7 @@ Post CRUD backend (E4-01→E4-05), React+Vite+Tailwind web init, Login/Register/
 | GET | /notifications | Required | Get notifications (cursor) |
 | PUT | /notifications/{id}/read | Required | Mark notification read |
 | PUT | /notifications/read-all | Required | Mark all notifications read |
+| GET | /notifications/unread-count | Required | Unread notification count |
 | GET | /search/users?q= | Public | Search users (offset cursor) |
 | GET | /search/posts?q= | Public | Full-text search posts (offset cursor) |
 | GET | /search/hashtags?q= | Public | Search hashtags by prefix (offset cursor) |
@@ -369,31 +437,31 @@ Web:    http://localhost:5173 (Vite dev server)
 
 | Epic | Name | Total Pts | Done | Remaining |
 |------|------|-----------|------|-----------|
-| Epic 1 | Foundation & DevOps | 23 | 18 | 5 (Android init Sprint 7) |
-| Epic 2 | Authentication | 39 | 20 | 19 (Android Sprints 7-8) |
+| Epic 1 | Foundation & DevOps | 23 | 21 | 2 (Android init done; remaining is pre-existing point-count drift, not tracked work) |
+| Epic 2 | Authentication | 39 | 20 | 19 (Android Sprint 8) |
 | Epic 3 | User Profiles | 20 | 17 | 3 (Android Sprint 8) |
 | Epic 4 | Posts | 29 | 22 | 7 (Android Sprint 8) |
-| Epic 5 | Timeline & Feed | 31 | 18 | 13 (Web trending tab Sprint 7, Android Sprint 8) |
-| Epic 6 | Social Interactions | 41 | 28 | 13 (Web reply composer/quote UI/bookmarks page/followers-following pages Sprint 7, Android Sprint 9) |
-| Epic 7 | Notifications | 20 | 9 | 11 (Web notifications UI Sprint 7, Android Sprint 9) |
-| Epic 8 | Search | 23 | 15 | 8 (Web search UI Sprint 7, Android Sprint 9) |
+| Epic 5 | Timeline & Feed | 31 | 24 | 7 (Android Sprint 8: E5-08/09) |
+| Epic 6 | Social Interactions | 41 | 35 | 6 (Android Sprint 9: E6-16/17/18/19) |
+| Epic 7 | Notifications | 20 | 16 | 4 (Android Sprint 9: E7-08/09) |
+| Epic 8 | Search | 23 | 20 | 3 (Android Sprint 9: E8-08) |
 | Epic 9 | Admin | 16 | 0 | 16 |
 | Epic 10 | Polish/Testing/Launch | 50 | 0 | 50 |
 
 ---
 
-## Sprint 7 Preview (next session)
+## Sprint 8 Preview (next session)
 
-**Focus (per Sprint-and-Release-Plan.md §6, Sprint 7):** Web app feature-complete for MVP + Android project init + Android auth screens.
+**Focus (per Sprint-and-Release-Plan.md §6, Sprint 8):** Android core — auth, profiles, posts, and the home feed. "Backend is complete; Android consumes stable APIs. No new backend features during Android sprints (bugs only)" per §2.3.
 
-**Committed stories per the plan:** E6-11 (Follow/Unfollow button — *already done in Sprint 5*, verify only), E6-12 (Reply composer — mostly done via PostDetailPage's `PostComposer parentPostId`, verify against story wording), E6-13 (Repost/Quote UI — dropdown for Repost vs Quote; quote composer entry point still missing), E6-14 (Bookmarks page `/bookmarks`), E6-15 (Followers/Following pages `/profile/:username/followers|following` — backend + API client already exist from Sprint 5), E7-05/06/07 (Notifications page + item component + unread badge), E8-06/07 (Search page with tabs + debounced input), E5-06/07 (Feed tabs Home/Latest/Trending + infinite scroll), E1-07 (Initialize Android project).
+**Committed stories per the plan:** E2-12 (Android login screen), E2-13 (Android registration screen), E2-14 (Token storage via EncryptedSharedPreferences + OkHttp refresh interceptor — **this is where Retrofit/OkHttp get added**, deliberately deferred from Sprint 7's E1-07), E3-06 (Profile screen), E3-07 (Edit profile screen), E4-09 (Post composer screen/bottom sheet), E4-10 (Post card composable), E4-11 (Post detail screen), E5-08 (Home feed screen, LazyColumn + pull-to-refresh), E5-09 (Tab switcher Home/Latest/Trending).
 
-**Useful groundwork already in place from Sprints 5–6:**
-- `usersApi.getFollowers/getFollowing` + backend list endpoints exist — web list pages just need UI.
-- `timelinesApi.getTrending` exists — a Trending tab on HomePage is mostly wiring.
-- Quote backend done (`quotedPostId` on createPost + embed rendering in PostCard) — only the "Repost vs Quote" dropdown + quote composer entry point is missing in the UI.
-- `postsApi` has bookmark/unbookmark — a `/bookmarks` page needs a new backend list endpoint (`GET /users/me/bookmarks` or similar) since none exists yet — check the plan before assuming E6-14 is UI-only.
-- Notification and search REST APIs are complete and cursor-paginated — E7-05/06/07 and E8-06/07 are pure UI work against existing endpoints.
+**Before writing any Android feature code:** open `android/` in Android Studio and let it sync. This session could not verify the Sprint 7 scaffold compiles (no Android SDK / no network for the Gradle wrapper jar in this environment) — resolve whatever the first sync surfaces (dependency version bumps, wrapper generation) before adding to it.
+
+**Groundwork already in place from Sprint 7:**
+- `BoondiTheme` (indigo brand, Material3) and `BoondiNavHost` exist — new screens are new `composable(...)` routes in the same NavHost, replacing `SplashScreen` as the start destination once login exists.
+- Web's `AuthResponse`/JWT shape (access 15min / refresh 7 days, `Authorization: Bearer` header) is the contract E2-14's OkHttp interceptor needs to replicate — see "Backend API Design Conventions" below.
+- All backend endpoints Android needs for this sprint already exist and are stable (auth, profile, post CRUD, timelines) — this sprint is Retrofit/UI wiring only, no backend changes expected.
 
 ---
 
@@ -410,4 +478,4 @@ Web:    http://localhost:5173 (Vite dev server)
 
 ---
 
-*Last updated: 2026-07-06 | Sprint 6 complete*
+*Last updated: 2026-07-06 | Sprint 7 complete*

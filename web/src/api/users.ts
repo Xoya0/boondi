@@ -58,4 +58,11 @@ export const usersApi = {
         params: { cursor, limit },
       })
       .then(unwrap),
+
+  getMyBookmarks: (cursor?: string, limit = 20) =>
+    apiClient
+      .get<{ data: CursorPage<Post> }>('/users/me/bookmarks', {
+        params: { cursor, limit },
+      })
+      .then(unwrap),
 }

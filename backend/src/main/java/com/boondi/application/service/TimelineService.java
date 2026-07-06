@@ -111,6 +111,33 @@ public class TimelineService {
         return buildPage(posts, pageSize, viewerId);
     }
 
+    /** The authenticated user's bookmarked posts, most recently bookmarked first (E6-14). */
+    @Transactional(readOnly = true)
+    public CursorPage<PostResponse> getBookmarkedTimeline(UUID userId, String cursorStr, int limit) {
+        int pageSize = clampLimit(limit);
+        OffsetDateTime cursor = parseCursor(cursorStr);
+        List<Object[]> rows = postRepository.findBookmarkedPosts(userId, cursor, PageRequest.of(0, pageSize + 1));
+
+        boolean hasMore = rows.size() > pageSize;
+        List<Object[]> page = hasMore ? rows.subList(0, pageSize) : rows;
+
+        List<PostResponse> items = page.stream()
+                .map(row -> postMapper.toResponse((Post) row[0]))
+                .toList();
+        postViewerStateService.enrich(userId, items);
+
+        String nextCursor = (hasMore && !page.isEmpty())
+                ? ((OffsetDateTime) page.get(page.size() - 1)[1]).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                : null;
+
+        return CursorPage.<PostResponse>builder()
+                .items(items)
+                .nextCursor(nextCursor)
+                .hasMore(hasMore)
+                .count(items.size())
+                .build();
+    }
+
     // ─── Helpers ────────────────────────────────────────────────────────────────
 
     private int clampLimit(int requested) {

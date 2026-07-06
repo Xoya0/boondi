@@ -71,4 +71,18 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     List<Post> searchPosts(@Param("query") String query,
                            @Param("limit") int limit,
                            @Param("offset") int offset);
+
+    // Bookmarked posts for a user, most recently bookmarked first (E6-14).
+    // Row shape: [Post, bookmark.createdAt] — the bookmark timestamp (not the post's
+    // own createdAt) is the natural sort key and cursor for "my bookmarks".
+    @Query("SELECT p, b.createdAt FROM PostBookmark b " +
+           "JOIN Post p ON p.id = b.postId " +
+           "JOIN FETCH p.author " +
+           "LEFT JOIN FETCH p.quotedPost q LEFT JOIN FETCH q.author " +
+           "WHERE b.userId = :userId " +
+           "AND (:cursor IS NULL OR b.createdAt < :cursor) " +
+           "ORDER BY b.createdAt DESC")
+    List<Object[]> findBookmarkedPosts(@Param("userId") UUID userId,
+                                       @Param("cursor") OffsetDateTime cursor,
+                                       Pageable pageable);
 }

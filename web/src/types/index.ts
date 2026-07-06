@@ -60,6 +60,24 @@ export interface Post {
   bookmarkedByViewer: boolean
 }
 
+export type NotificationType = 'LIKE' | 'REPOST' | 'REPLY' | 'FOLLOW'
+
+export interface Notification {
+  id: string
+  type: NotificationType
+  actor: PostAuthor
+  // Null for FOLLOW notifications
+  postId: string | null
+  postContentPreview: string | null
+  read: boolean
+  createdAt: string
+}
+
+export interface Hashtag {
+  tag: string
+  postCount: number
+}
+
 export interface CursorPage<T> {
   items: T[]
   nextCursor: string | null

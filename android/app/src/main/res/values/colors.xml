@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Indigo-600, matching the web app's brand accent (Tailwind indigo-600) -->
+    <color name="brand_indigo">#4F46E5</color>
+    <color name="brand_indigo_dark">#3730A3</color>
+    <color name="launcher_background">#EEF2FF</color>
+</resources>

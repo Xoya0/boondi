@@ -2,6 +2,7 @@ package com.boondi.presentation.controller;
 
 import com.boondi.application.dto.response.CursorPage;
 import com.boondi.application.dto.response.NotificationResponse;
+import com.boondi.application.dto.response.UnreadCountResponse;
 import com.boondi.application.service.NotificationService;
 import com.boondi.infrastructure.exception.ApiResponse;
 import com.boondi.infrastructure.security.CustomUserDetailsService.CustomUserDetails;
@@ -52,5 +53,13 @@ public class NotificationController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         notificationService.markAllAsRead(userDetails.getUser().getId());
         return ResponseEntity.ok(ApiResponse.success(null, "All notifications marked as read"));
+    }
+
+    @GetMapping("/unread-count")
+    @Operation(summary = "Get the authenticated user's unread notification count")
+    public ResponseEntity<ApiResponse<UnreadCountResponse>> getUnreadCount(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        long count = notificationService.getUnreadCount(userDetails.getUser().getId());
+        return ResponseEntity.ok(ApiResponse.success(UnreadCountResponse.builder().count(count).build()));
     }
 }

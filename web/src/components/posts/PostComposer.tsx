@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
-import type { Post } from '../../types'
+import type { Post, QuotedPost } from '../../types'
 import { postsApi } from '../../api/posts'
 import { useAuthStore } from '../../store/authStore'
+import QuotedPostPreview from './QuotedPostPreview'
 
 const MAX_CHARS = 500
 
@@ -10,12 +11,15 @@ interface PostComposerProps {
   placeholder?: string
   // When set, the composed post is a reply to this post
   parentPostId?: string
+  // When set, the composed post quotes this post — renders a read-only preview below the textarea
+  quotedPost?: QuotedPost
 }
 
 export default function PostComposer({
   onPosted,
   placeholder = "What's on your mind?",
   parentPostId,
+  quotedPost,
 }: PostComposerProps) {
   const user = useAuthStore(s => s.user)
   const [content, setContent] = useState('')
@@ -59,7 +63,12 @@ export default function PostComposer({
         setUploading(false)
       }
 
-      const post = await postsApi.createPost({ content: content.trim(), imageUrl, parentPostId })
+      const post = await postsApi.createPost({
+        content: content.trim(),
+        imageUrl,
+        parentPostId,
+        quotedPostId: quotedPost?.id,
+      })
       setContent('')
       removeImage()
       onPosted?.(post)
@@ -98,6 +107,13 @@ export default function PostComposer({
             rows={3}
             className="w-full resize-none text-gray-800 text-sm placeholder-gray-400 border-none outline-none bg-transparent leading-relaxed"
           />
+
+          {/* Quoted post preview */}
+          {quotedPost && (
+            <div className="mt-2">
+              <QuotedPostPreview quotedPost={quotedPost} />
+            </div>
+          )}
 
           {/* Image preview */}
           {imagePreview && (
