@@ -79,3 +79,21 @@ data class AuthSession(
     val refreshToken: String,
     val user: User,
 )
+
+enum class NotificationType { LIKE, REPOST, REPLY, FOLLOW, UNKNOWN }
+
+data class Notification(
+    val id: String,
+    val type: NotificationType,
+    val actor: Author,
+    // Null for FOLLOW notifications
+    val postId: String?,
+    val postContentPreview: String?,
+    val read: Boolean,
+    val createdAt: String,
+)
+
+data class Hashtag(
+    val tag: String,
+    val postCount: Long,
+)

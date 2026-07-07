@@ -27,6 +27,10 @@ class UserRepository @Inject constructor(
         safeApiCall(moshi) { userApi.getUserPosts(username, cursor, limit) }
             .map { page -> page.toDomain { it.toDomain() } }
 
+    suspend fun getMyBookmarks(cursor: String?, limit: Int = 20): ApiResult<CursorPage<Post>> =
+        safeApiCall(moshi) { userApi.getMyBookmarks(cursor, limit) }
+            .map { page -> page.toDomain { it.toDomain() } }
+
     suspend fun follow(username: String): ApiResult<User> =
         safeApiCall(moshi) { userApi.follow(username) }.map { it.toDomain() }
 

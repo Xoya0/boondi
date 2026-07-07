@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -35,26 +36,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.boondi.android.ui.common.Avatar
 import kotlinx.coroutines.flow.collectLatest
 
 /**
  * Full-screen post composer (E4-09): text with a live character counter, optional image
- * attachment, and submit. Reused for replies by passing [parentPostId].
+ * attachment, and submit. Reused for replies (E6-18) — when opened via [Routes.compose] with
+ * a parentPostId, the ViewModel fetches and previews that parent post above the text field.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ComposePostScreen(
     onClose: () -> Unit,
     onPosted: (String) -> Unit,
-    parentPostId: String? = null,
     viewModel: ComposePostViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val isReply = viewModel.parentPostId != null
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
         viewModel.posted.collectLatest { postId -> onPosted(postId) }
@@ -67,7 +71,7 @@ fun ComposePostScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (parentPostId == null) "New post" else "Reply") },
+                title = { Text(if (isReply) "Reply" else "New post") },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(Icons.Filled.Close, contentDescription = "Close")
@@ -75,7 +79,7 @@ fun ComposePostScreen(
                 },
                 actions = {
                     Button(
-                        onClick = { viewModel.submit(parentPostId) },
+                        onClick = viewModel::submit,
                         enabled = state.canSubmit,
                         modifier = Modifier.padding(end = 8.dp),
                     ) {
@@ -86,7 +90,7 @@ fun ComposePostScreen(
                                 color = MaterialTheme.colorScheme.onPrimary,
                             )
                         } else {
-                            Text(if (parentPostId == null) "Post" else "Reply")
+                            Text(if (isReply) "Reply" else "Post")
                         }
                     }
                 },
@@ -100,6 +104,11 @@ fun ComposePostScreen(
                 .imePadding()
                 .padding(16.dp),
         ) {
+            state.parentPost?.let { parent ->
+                ReplyingToPreview(parent)
+                Spacer(Modifier.height(12.dp))
+            }
+
             OutlinedTextField(
                 value = state.text,
                 onValueChange = viewModel::onTextChange,
@@ -177,5 +186,39 @@ fun ComposePostScreen(
                 )
             }
         }
+    }
+}
+
+/** Read-only parent-post preview shown above the composer when replying (E6-18). */
+@Composable
+private fun ReplyingToPreview(parent: com.boondi.android.domain.model.Post) {
+    Column(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Avatar(imageUrl = parent.author.profilePictureUrl, name = parent.author.name, size = 32.dp)
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text(parent.author.name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "@${parent.author.username}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (parent.content.isNotBlank()) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = parent.content,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 4,
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Replying to @${parent.author.username}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }

@@ -44,6 +44,9 @@ public class UserResponse {
     @Schema(description = "Whether the user's email has been verified")
     private boolean emailVerified;
 
+    @Schema(description = "Whether the account is suspended (admin moderation)")
+    private boolean suspended;
+
     @Schema(description = "Number of followers")
     private int followerCount;
 

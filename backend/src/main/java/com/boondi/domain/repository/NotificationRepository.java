@@ -16,7 +16,7 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     @Query("SELECT n FROM Notification n JOIN FETCH n.actor " +
            "LEFT JOIN FETCH n.post p LEFT JOIN FETCH p.author " +
            "WHERE n.recipient.id = :recipientId " +
-           "AND (:cursor IS NULL OR n.createdAt < :cursor) " +
+           "AND (cast(:cursor as timestamp) IS NULL OR n.createdAt < :cursor) " +
            "ORDER BY n.createdAt DESC")
     List<Notification> findByRecipient(@Param("recipientId") UUID recipientId,
                                         @Param("cursor") OffsetDateTime cursor,

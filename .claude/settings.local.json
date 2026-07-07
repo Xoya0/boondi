@@ -35,7 +35,8 @@
       "Bash(./gradlew :app:assembleDebug)",
       "PowerShell(Get-CimInstance *)",
       "PowerShell(Stop-Process *)",
-      "PowerShell(Get-Process *)"
+      "PowerShell(Get-Process *)",
+      "Bash(docker compose *)"
     ]
   }
 }

@@ -174,6 +174,21 @@ public class PostService {
             throw BoondiException.postAccessDenied();
         }
 
+        softDeletePost(post);
+    }
+
+    /** Admin moderation delete (E9-03) — same soft-delete/counter rollback, no ownership check. */
+    @Transactional
+    public void adminDeletePost(UUID postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> BoondiException.postNotFound(postId.toString()));
+
+        softDeletePost(post);
+        log.info("Post admin-deleted: postId={}", postId);
+    }
+
+    private void softDeletePost(Post post) {
+        UUID postId = post.getId();
         post.setDeletedAt(OffsetDateTime.now());
         postRepository.save(post);
 
@@ -200,7 +215,7 @@ public class PostService {
         } catch (jakarta.persistence.EntityNotFoundException ignored) {
         }
 
-        timelineCacheService.evictFollowersOf(userId);
+        timelineCacheService.evictFollowersOf(author.getId());
 
         log.info("Post soft-deleted: postId={}", postId);
     }

@@ -15,19 +15,26 @@ import com.boondi.android.MainViewModel
 import com.boondi.android.data.local.AuthState
 import com.boondi.android.ui.auth.LoginScreen
 import com.boondi.android.ui.auth.RegisterScreen
-import com.boondi.android.ui.feed.HomeScreen
+import com.boondi.android.ui.bookmarks.BookmarksScreen
 import com.boondi.android.ui.post.ComposePostScreen
 import com.boondi.android.ui.post.PostDetailScreen
 import com.boondi.android.ui.profile.EditProfileScreen
 import com.boondi.android.ui.profile.ProfileScreen
+import com.boondi.android.ui.shell.HomeShell
 
 /** Route table. Screens are added as new `composable(...)` entries here. */
 object Routes {
     const val LOGIN = "login"
     const val REGISTER = "register"
     const val HOME = "home"
-    const val COMPOSE = "compose"
     const val EDIT_PROFILE = "edit_profile"
+    const val BOOKMARKS = "bookmarks"
+
+    // parentPostId is optional — absent for a new top-level post, present for a reply (E6-18),
+    // in which case ComposePostScreen also fetches + previews the parent post.
+    const val COMPOSE = "compose?parentPostId={parentPostId}"
+    fun compose(parentPostId: String? = null) =
+        if (parentPostId != null) "compose?parentPostId=$parentPostId" else "compose"
 
     const val POST = "post/{postId}"
     fun post(postId: String) = "post/$postId"
@@ -82,13 +89,32 @@ fun BoondiApp(
             RegisterScreen(onNavigateToLogin = { navController.popBackStack() })
         }
         composable(Routes.HOME) {
-            HomeScreen(
+            val username = (authState as? AuthState.Authenticated)?.user?.username.orEmpty()
+            HomeShell(
+                currentUsername = username,
                 onOpenPost = { navController.navigate(Routes.post(it)) },
                 onOpenProfile = { navController.navigate(Routes.profile(it)) },
-                onCompose = { navController.navigate(Routes.COMPOSE) },
+                onCompose = { navController.navigate(Routes.compose()) },
+                onReply = { postId -> navController.navigate(Routes.compose(postId)) },
+                onOpenBookmarks = { navController.navigate(Routes.BOOKMARKS) },
+                onEditProfile = { navController.navigate(Routes.EDIT_PROFILE) },
             )
         }
-        composable(Routes.COMPOSE) {
+        composable(Routes.BOOKMARKS) {
+            BookmarksScreen(
+                onBack = { navController.popBackStack() },
+                onOpenPost = { navController.navigate(Routes.post(it)) },
+                onOpenProfile = { navController.navigate(Routes.profile(it)) },
+                onReply = { postId -> navController.navigate(Routes.compose(postId)) },
+            )
+        }
+        composable(
+            route = Routes.COMPOSE,
+            arguments = listOf(navArgument("parentPostId") {
+                type = NavType.StringType
+                nullable = true
+            }),
+        ) {
             ComposePostScreen(
                 onClose = { navController.popBackStack() },
                 onPosted = { postId ->
@@ -106,6 +132,7 @@ fun BoondiApp(
                 onBack = { navController.popBackStack() },
                 onOpenPost = { navController.navigate(Routes.post(it)) },
                 onOpenProfile = { navController.navigate(Routes.profile(it)) },
+                onReply = { postId -> navController.navigate(Routes.compose(postId)) },
             )
         }
         composable(
@@ -117,6 +144,7 @@ fun BoondiApp(
                 onOpenPost = { navController.navigate(Routes.post(it)) },
                 onOpenProfile = { navController.navigate(Routes.profile(it)) },
                 onEditProfile = { navController.navigate(Routes.EDIT_PROFILE) },
+                onReply = { postId -> navController.navigate(Routes.compose(postId)) },
             )
         }
         composable(Routes.EDIT_PROFILE) {

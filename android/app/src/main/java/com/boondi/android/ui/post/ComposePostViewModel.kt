@@ -2,10 +2,12 @@ package com.boondi.android.ui.post
 
 import android.content.Context
 import android.net.Uri
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.boondi.android.data.ApiResult
 import com.boondi.android.data.repository.PostRepository
+import com.boondi.android.domain.model.Post
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +31,9 @@ data class ComposeUiState(
     val uploadingImage: Boolean = false,
     val submitting: Boolean = false,
     val error: String? = null,
+    // Set (E6-18) when this composer is replying — the read-only preview shown above the
+    // text field. Null while it's still loading or when this is a new top-level post.
+    val parentPost: Post? = null,
 ) {
     val remaining: Int get() = MAX_POST_LENGTH - text.length
     val overLimit: Boolean get() = text.length > MAX_POST_LENGTH
@@ -40,7 +45,11 @@ data class ComposeUiState(
 class ComposePostViewModel @Inject constructor(
     private val postRepository: PostRepository,
     @ApplicationContext private val context: Context,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    /** Null for a new top-level post; set when replying (nav arg from [Routes.compose]). */
+    val parentPostId: String? = savedStateHandle["parentPostId"]
 
     private val _state = MutableStateFlow(ComposeUiState())
     val state: StateFlow<ComposeUiState> = _state.asStateFlow()
@@ -48,6 +57,19 @@ class ComposePostViewModel @Inject constructor(
     /** Emits once when the post has been created so the screen can pop back. */
     private val _posted = MutableSharedFlow<String>()
     val posted: SharedFlow<String> = _posted.asSharedFlow()
+
+    init {
+        if (parentPostId != null) {
+            viewModelScope.launch {
+                val res = postRepository.getPost(parentPostId)
+                if (res is ApiResult.Success) {
+                    _state.update { it.copy(parentPost = res.data) }
+                }
+                // On failure the preview just stays hidden — replying still works since the
+                // parent id came from navigation, not from this fetch.
+            }
+        }
+    }
 
     fun onTextChange(value: String) = _state.update { it.copy(text = value, error = null) }
 
@@ -71,7 +93,7 @@ class ComposePostViewModel @Inject constructor(
 
     fun onRemoveImage() = _state.update { it.copy(imageUri = null, uploadedImageUrl = null, uploadingImage = false) }
 
-    fun submit(parentPostId: String? = null) {
+    fun submit() {
         val s = _state.value
         if (!s.canSubmit) return
         _state.update { it.copy(submitting = true, error = null) }

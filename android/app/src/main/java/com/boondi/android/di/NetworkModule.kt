@@ -2,7 +2,9 @@ package com.boondi.android.di
 
 import com.boondi.android.BuildConfig
 import com.boondi.android.data.remote.api.AuthApi
+import com.boondi.android.data.remote.api.NotificationApi
 import com.boondi.android.data.remote.api.PostApi
+import com.boondi.android.data.remote.api.SearchApi
 import com.boondi.android.data.remote.api.TimelineApi
 import com.boondi.android.data.remote.api.UserApi
 import com.boondi.android.data.remote.interceptor.AuthInterceptor
@@ -111,4 +113,14 @@ object NetworkModule {
     @Singleton
     fun provideTimelineApi(@AuthClient retrofit: Retrofit): TimelineApi =
         retrofit.create(TimelineApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideNotificationApi(@AuthClient retrofit: Retrofit): NotificationApi =
+        retrofit.create(NotificationApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSearchApi(@AuthClient retrofit: Retrofit): SearchApi =
+        retrofit.create(SearchApi::class.java)
 }

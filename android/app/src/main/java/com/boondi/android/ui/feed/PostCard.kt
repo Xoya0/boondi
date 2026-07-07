@@ -1,6 +1,7 @@
 package com.boondi.android.ui.feed
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,7 +14,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Repeat
@@ -22,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +50,10 @@ fun PostCard(
     post: Post,
     onClick: (Post) -> Unit,
     onAuthorClick: (String) -> Unit,
+    onReplyClick: (Post) -> Unit,
+    onLikeClick: (Post) -> Unit,
+    onRepostClick: (Post) -> Unit,
+    onBookmarkClick: (Post) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -113,7 +121,13 @@ fun PostCard(
                 }
 
                 Spacer(Modifier.height(8.dp))
-                PostActionBar(post)
+                PostActionBar(
+                    post = post,
+                    onReplyClick = onReplyClick,
+                    onLikeClick = onLikeClick,
+                    onRepostClick = onRepostClick,
+                    onBookmarkClick = onBookmarkClick,
+                )
             }
         }
     }
@@ -121,23 +135,42 @@ fun PostCard(
 }
 
 @Composable
-private fun PostActionBar(post: Post) {
+private fun PostActionBar(
+    post: Post,
+    onReplyClick: (Post) -> Unit,
+    onLikeClick: (Post) -> Unit,
+    onRepostClick: (Post) -> Unit,
+    onBookmarkClick: (Post) -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(28.dp),
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ActionStat(Icons.Outlined.ChatBubbleOutline, post.replyCount, tint = null)
         ActionStat(
-            Icons.Outlined.Repeat,
-            post.repostCount,
-            tint = if (post.repostedByViewer) Color(0xFF10B981) else null,
+            icon = Icons.Outlined.ChatBubbleOutline,
+            count = post.replyCount,
+            tint = null,
+            onClick = { onReplyClick(post) },
         )
-        if (post.likedByViewer) {
-            ActionStat(Icons.Filled.Favorite, post.likeCount, tint = Color(0xFFEF4444))
-        } else {
-            ActionStat(Icons.Outlined.FavoriteBorder, post.likeCount, tint = null)
-        }
+        ActionStat(
+            icon = Icons.Outlined.Repeat,
+            count = post.repostCount,
+            tint = if (post.repostedByViewer) Color(0xFF10B981) else null,
+            onClick = { onRepostClick(post) },
+        )
+        ActionStat(
+            icon = if (post.likedByViewer) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+            count = post.likeCount,
+            tint = if (post.likedByViewer) Color(0xFFEF4444) else null,
+            onClick = { onLikeClick(post) },
+        )
+        ActionStat(
+            icon = if (post.bookmarkedByViewer) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+            count = post.bookmarkCount,
+            tint = if (post.bookmarkedByViewer) Color(0xFF4F46E5) else null,
+            onClick = { onBookmarkClick(post) },
+        )
     }
 }
 
@@ -146,8 +179,20 @@ private fun ActionStat(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     count: Int,
     tint: Color?,
+    onClick: (() -> Unit)?,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = if (onClick != null) {
+            Modifier.clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            )
+        } else {
+            Modifier
+        },
+    ) {
         Icon(
             imageVector = icon,
             contentDescription = null,

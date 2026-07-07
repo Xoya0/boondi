@@ -29,6 +29,12 @@ interface UserApi {
         @Query("limit") limit: Int = 20,
     ): ApiEnvelope<CursorPageDto<PostDto>>
 
+    @GET("users/me/bookmarks")
+    suspend fun getMyBookmarks(
+        @Query("cursor") cursor: String?,
+        @Query("limit") limit: Int = 20,
+    ): ApiEnvelope<CursorPageDto<PostDto>>
+
     @POST("users/{username}/follow")
     suspend fun follow(@Path("username") username: String): ApiEnvelope<UserDto>
 

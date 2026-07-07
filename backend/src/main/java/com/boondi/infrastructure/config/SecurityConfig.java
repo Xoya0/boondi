@@ -1,11 +1,16 @@
 package com.boondi.infrastructure.config;
 
+import com.boondi.infrastructure.exception.ApiResponse;
+import com.boondi.infrastructure.exception.ErrorCode;
 import com.boondi.infrastructure.security.CustomUserDetailsService;
 import com.boondi.infrastructure.security.JwtAuthenticationFilter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -17,6 +22,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -32,12 +38,22 @@ public class SecurityConfig {
     private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http, AuthenticationEntryPoint authenticationEntryPoint) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Without this, Spring Security's fallback entry point for a stateless config
+                // with no httpBasic()/formLogin() is Http403ForbiddenEntryPoint — meaning every
+                // missing/expired/invalid JWT gets a 403, not 401. That silently breaks the
+                // client-side refresh flow, since OkHttp's Authenticator (and equivalents) only
+                // ever fires on 401. Anonymous/unauthenticated access must be 401; 403 is
+                // reserved for a valid, authenticated request that lacks the required role
+                // (e.g. @PreAuthorize("hasRole('ADMIN')") — handled separately, see
+                // GlobalExceptionHandler#handleAccessDeniedException).
+                .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(authenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
@@ -68,6 +84,22 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /** Writes a proper 401 + ApiResponse JSON body for any request that reaches an
+     *  authenticated endpoint without valid credentials (missing, malformed, or expired JWT). */
+    @Bean
+    public AuthenticationEntryPoint authenticationEntryPoint(ObjectMapper objectMapper) {
+        return (request, response, authException) -> {
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            ApiResponse<Void> body = ApiResponse.failure(
+                    ErrorCode.TOKEN_INVALID.name(),
+                    "Authentication is required to access this resource",
+                    request.getRequestURI()
+            );
+            response.getWriter().write(objectMapper.writeValueAsString(body));
+        };
     }
 
     @Bean

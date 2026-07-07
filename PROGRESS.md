@@ -1,7 +1,21 @@
 # Boondi — Project Progress & Session Memory
 
 > **Purpose:** Read this file FIRST in every new session before doing any work.
-> **Last updated:** 2026-07-06 | Sprint 8 complete — next is Sprint 9
+> **Last updated:** 2026-07-07 | Sprint 9 complete — next is Sprint 10
+
+---
+
+## ⚠️ Critical post-Sprint-9 fixes (found during first-ever live run)
+
+The backend had **never actually been booted end-to-end** before 2026-07-07 (every prior sprint validated via `mvn compile` / code review only). The first real run against Docker + the Android app surfaced three real, pre-existing bugs — all now fixed:
+
+1. **`application.yml` YAML indentation bug**: `spring.mail.*` and `spring.task.*` were mis-indented as children of `springdoc:` instead of `spring:`, so `spring.mail.host` was never actually set → Spring never created a `JavaMailSender` bean → **the app crash-looped on every startup**, so nothing was ever listening on port 8080. Fixed by re-indenting both blocks under `spring:`.
+2. **`docker-compose.yml`'s `backend` service was missing `MAIL_HOST`/`STORAGE_ENDPOINT` env overrides.** Both defaulted to `localhost`, which inside the backend's own container means itself, not the `mailhog`/`minio` sibling containers — so even after fixing #1, verification emails and avatar/post-image uploads would silently fail. Fixed by pointing both at the Docker service names (`MAIL_HOST=mailhog`, `STORAGE_ENDPOINT=http://minio:9000`); `STORAGE_PUBLIC_URL` deliberately stays `localhost:9000` since that URL goes to browser/app clients on the host, not the backend itself.
+3. **Systemic Postgres/pgjdbc bug in every cursor-paginated query**: the `(:cursor IS NULL OR x.field < :cursor)` JPQL pattern — used identically across **10 query methods in 5 repositories** (`PostRepository` ×5: latest/home/user timelines, replies, bookmarks; `FollowRepository` ×2: followers/following; `NotificationRepository`; `ReportRepository`; `UserRepository.findAllForAdmin`) — fails with `ERROR: could not determine data type of parameter $N` on Postgres whenever `cursor` is null (i.e. **every first-page load**, which is every feed/list screen on first open). This is why the Android app's Home feed showed a 500 and newly-created posts appeared to "vanish" — they were saved fine; the feed query just couldn't run. **Fixed by casting explicitly: `(cast(:cursor as timestamp) IS NULL OR x.field < :cursor)`** in all 10 places. Verified empirically against the live container (home timeline, user timeline, notifications, bookmarks, followers, following, admin users list all return 200 now). **If you add a new cursor-paginated query, use this cast pattern from the start — the bare `:cursor IS NULL` form will pass compilation and code review but fail at runtime on Postgres.**
+4. **`SecurityConfig` never configured a custom `AuthenticationEntryPoint`**, so Spring Security's fallback for a stateless config with no `httpBasic()`/`formLogin()` is `Http403ForbiddenEntryPoint` — every missing/expired/invalid JWT got a **403**, not 401. Since the Android `TokenAuthenticator` (Sprint 8's E2-14 refresh flow) — and any correct OkHttp/Retrofit client — only ever triggers a refresh attempt on a **401**, this meant **the token-refresh feature could never actually fire**; an expired access token (15-min TTL) just failed forever with a generic "you don't have permission" error instead of silently refreshing. Fixed by adding an `AuthenticationEntryPoint` bean (in `SecurityConfig`) that returns a proper 401 + `ApiResponse` JSON body for unauthenticated access; the existing `@PreAuthorize`/`AccessDeniedException` → 403 path (admin RBAC) is untouched and still correctly returns 403. Verified empirically: no-token → 401, garbage-token → 401, valid-token-wrong-role → 403, valid-token-correct-role → 200.
+5. **Image URLs are unreachable from the Android emulator** — `app.storage.public-url` defaults to `http://localhost:9000` (correct for the web app's browser, which runs on the host), but inside the emulator "localhost" means the emulator itself, not the host machine (same class of issue `10.0.2.2` solves for the API, but this is a *different* mechanism since the URL is embedded in API response bodies, not the API host itself). Workaround (not a code fix): `adb reverse tcp:9000 tcp:9000` forwards the emulator's own port 9000 to the host's MinIO. **This does not persist across emulator restarts — re-run it each session**, or wire it into a Gradle task if it becomes a recurring annoyance. As of this session, images still weren't confirmed rendering after this workaround (possibly needs a full app restart / Coil cache clear) — unresolved, deprioritized by the user.
+
+All five fixes are in already; `docker compose up -d --build backend` picks them up (fix 5 is a per-session `adb` command, not a code change). No Android/web code changes were needed for fixes 1–4 — all backend.
 
 ---
 
@@ -23,21 +37,21 @@ C:\Users\dibya\Documents\Boondi\
 ├── doc/                          ← All planning documents
 ├── backend/src/main/java/com/boondi/
 │   ├── domain/
-│   │   ├── entity/   User, Post, EmailVerification, PasswordResetToken, Follow, PostLike, PostRepost, PostBookmark, Notification, Hashtag, PostHashtag
+│   │   ├── entity/   User, Post, EmailVerification, PasswordResetToken, Follow, PostLike, PostRepost, PostBookmark, Notification, Hashtag, PostHashtag, Report
 │   │   ├── enums/    UserRole, NotificationType
-│   │   └── repository/ UserRepository, PostRepository, EmailVerificationRepository, PasswordResetTokenRepository, FollowRepository, PostLikeRepository, PostRepostRepository, PostBookmarkRepository, NotificationRepository, HashtagRepository, PostHashtagRepository
+│   │   └── repository/ UserRepository, PostRepository, EmailVerificationRepository, PasswordResetTokenRepository, FollowRepository, PostLikeRepository, PostRepostRepository, PostBookmarkRepository, NotificationRepository, HashtagRepository, PostHashtagRepository, ReportRepository
 │   ├── application/
-│   │   ├── dto/request/   Register, Login, Logout, Refresh, ForgotPassword, ResetPassword, UpdateProfile, CreatePost, UpdatePost
-│   │   ├── dto/response/  AuthResponse, UserResponse, MessageResponse, UploadResponse, PostResponse, CursorPage, NotificationResponse, HashtagResponse
-│   │   ├── mapper/        UserMapper, PostMapper, NotificationMapper
-│   │   └── service/       AuthService, EmailVerificationService, PasswordResetService, TokenService, UserService, PostService, TimelineService, InteractionService, FollowService, PostViewerStateService, TimelineCacheService, NotificationService, SearchService
+│   │   ├── dto/request/   Register, Login, Logout, Refresh, ForgotPassword, ResetPassword, UpdateProfile, CreatePost, UpdatePost, CreateReport
+│   │   ├── dto/response/  AuthResponse, UserResponse, MessageResponse, UploadResponse, PostResponse, CursorPage, NotificationResponse, HashtagResponse, ReportResponse
+│   │   ├── mapper/        UserMapper, PostMapper, NotificationMapper, ReportMapper
+│   │   └── service/       AuthService, EmailVerificationService, PasswordResetService, TokenService, UserService, PostService, TimelineService, InteractionService, FollowService, PostViewerStateService, TimelineCacheService, NotificationService, SearchService, AdminService, ReportService
 │   ├── infrastructure/
 │   │   ├── security/  JwtTokenProvider, JwtAuthenticationFilter, CustomUserDetailsService
 │   │   ├── config/    SecurityConfig, RedisConfig, CorsConfig, SwaggerConfig, StorageConfig, MailConfig
 │   │   ├── service/   EmailService, StorageService
-│   │   └── exception/ ErrorCode, BoondiException, GlobalExceptionHandler, ApiResponse
+│   │   └── exception/ ErrorCode, BoondiException, GlobalExceptionHandler (now handles AccessDeniedException too), ApiResponse
 │   └── presentation/controller/
-│       AuthController, HealthController, UserController, PostController, TimelineController, NotificationController, SearchController, HashtagController
+│       AuthController, HealthController, UserController, PostController, TimelineController, NotificationController, SearchController, HashtagController, AdminController, ReportController
 ├── backend/src/main/resources/db/migration/
 │   V1__create_users_table.sql
 │   V2__create_auth_token_tables.sql
@@ -45,12 +59,13 @@ C:\Users\dibya\Documents\Boondi\
 │   V4__create_follows_table.sql
 │   V5__create_interaction_tables.sql
 │   V6__create_notifications_and_search.sql
+│   V7__create_reports_table.sql
 ├── web/src/
-│   ├── api/         client.ts, auth.ts, users.ts, posts.ts, timelines.ts, notifications.ts, search.ts
+│   ├── api/         client.ts, auth.ts, users.ts, posts.ts, timelines.ts, notifications.ts, search.ts, admin.ts
 │   ├── store/       authStore.ts (Zustand + persist)
-│   ├── router/      index.tsx (ProtectedRoute, PublicOnlyRoute)
+│   ├── router/      index.tsx (ProtectedRoute, PublicOnlyRoute, AdminRoute)
 │   ├── hooks/       useInfiniteScroll.ts
-│   ├── types/       index.ts (UserInfo, UserProfile, Post, PostAuthor, QuotedPost, Notification, Hashtag, CursorPage, ApiResponse)
+│   ├── types/       index.ts (UserInfo, UserProfile, Post, PostAuthor, QuotedPost, Notification, Hashtag, Report, CursorPage, ApiResponse)
 │   ├── utils/       time.ts (formatRelativeTime, formatFullDate)
 │   ├── components/
 │   │   ├── auth/          AuthLayout.tsx
@@ -60,15 +75,15 @@ C:\Users\dibya\Documents\Boondi\
 │   │   └── shared/        Avatar.tsx, UserListItem.tsx, InfiniteScrollSentinel.tsx
 │   └── pages/
 │       LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage, HomePage, ProfilePage,
-│       PostDetailPage, BookmarksPage, FollowListPage, NotificationsPage, SearchPage
-├── android/                      ← Kotlin + Compose + Hilt (Sprint 8 core built; compiles, APK dexing pending host RAM)
+│       PostDetailPage, BookmarksPage, FollowListPage, NotificationsPage, SearchPage, AdminPage
+├── android/                      ← Kotlin + Compose + Hilt (Sprints 8–9 built; compiles, APK dexing pending host RAM)
 │   ├── app/src/main/java/com/boondi/android/
 │   │   ├── BoondiApplication.kt (@HiltAndroidApp), MainActivity.kt (@AndroidEntryPoint → BoondiApp), MainViewModel.kt
-│   │   ├── navigation/BoondiNavHost.kt (BoondiApp + Routes, auth-driven start/redirect)
-│   │   ├── data/remote/{dto,api,interceptor}/ · data/local/{TokenStorage,SessionManager} · data/repository/ · data/ApiResult.kt
+│   │   ├── navigation/BoondiNavHost.kt (BoondiApp + Routes; Routes.HOME renders ui/shell/HomeShell)
+│   │   ├── data/remote/{dto,api,interceptor}/ · data/local/{TokenStorage,SessionManager} · data/repository/ · data/ApiResult.kt (safeApiCall + safeApiCallUnit)
 │   │   ├── di/NetworkModule.kt (@PlainClient / @AuthClient)
-│   │   ├── domain/model/Models.kt (User, Post, Author, QuotedPost, CursorPage, AuthSession)
-│   │   └── ui/{common,auth,feed,post,profile}/ · ui/theme/{Color,Type,Theme}.kt
+│   │   ├── domain/model/Models.kt + PostInteractions.kt (User, Post, Author, QuotedPost, CursorPage, AuthSession, Notification, Hashtag; optimistic-toggle helpers)
+│   │   └── ui/{common,auth,feed,post,profile,bookmarks,notifications,search,shell}/ · ui/theme/{Color,Type,Theme}.kt
 │   ├── app/src/main/res/xml/network_security_config.xml (cleartext for 10.0.2.2 only)
 │   ├── gradlew(.bat) + gradle/wrapper/ (8.14.3) · local.properties (sdk.dir, gitignored)
 │   └── gradle/libs.versions.toml (AGP 8.12.3, Kotlin 2.0.21, compileSdk 36, Compose BOM 2024.09.03, Hilt 2.52, Retrofit/Moshi/OkHttp/Coil)
@@ -91,7 +106,7 @@ C:\Users\dibya\Documents\Boondi\
 | Sprint 6 | Sep 15–26, 2026 | Notifications + Search + Web social UI | ✅ COMPLETE |
 | Sprint 7 | Sep 29–Oct 10, 2026 | Web feature complete + Android init | ✅ COMPLETE |
 | Sprint 8 | Oct 13–24, 2026 | Android core (feed, posts, profiles) | ✅ COMPLETE |
-| Sprint 9 | Oct 27–Nov 7, 2026 | Android social + notifications + Admin panel | ⏳ Pending |
+| Sprint 9 | Oct 27–Nov 7, 2026 | Android social + notifications + Admin panel | ✅ COMPLETE |
 | Sprint 10 | Nov 10–20, 2026 | Polish, tests, security, production deploy | ⏳ Pending |
 
 ---
@@ -401,25 +416,25 @@ This environment now has an Android SDK, so the scaffold was made buildable:
 
 Clean-ish layering, Hilt DI throughout, MVVM (StateFlow-based `UiState` per screen):
 - **`data/remote/dto/`** — Moshi DTOs matching backend JSON exactly (`ApiEnvelope<T>`, `CursorPageDto<T>`, Auth/User/Post/Upload/Message DTOs) + `Mappers.kt` (DTO→domain) using the reflective `KotlinJsonAdapterFactory` (no codegen).
-- **`data/remote/api/`** — Retrofit interfaces: `AuthApi`, `UserApi`, `PostApi`, `TimelineApi` (suspend fns, paths relative to `BASE_URL` = `http://10.0.2.2:8080/api/v1/`).
+- **`data/remote/api/`** — Retrofit interfaces: `AuthApi`, `UserApi`, `PostApi`, `TimelineApi`, `NotificationApi`, `SearchApi` (suspend fns, paths relative to `BASE_URL` = `http://10.0.2.2:8080/api/v1/`).
 - **`data/remote/interceptor/`** — `AuthInterceptor` (adds `Bearer`) + `TokenAuthenticator` (401 → refresh via the *plain* client → retry; gives up → `SessionManager.onSessionExpired`).
 - **`data/local/`** — `TokenStorage` (EncryptedSharedPreferences, AES-256) + `SessionManager` (single source of auth truth, `StateFlow<AuthState>`).
-- **`data/repository/`** — `AuthRepository`, `UserRepository`, `PostRepository`, `TimelineRepository` returning `ApiResult<T>` (sealed Success/Error via `safeApiCall`, which unwraps the envelope and parses backend `errorCode`/`message`).
+- **`data/repository/`** — `AuthRepository`, `UserRepository`, `PostRepository`, `TimelineRepository`, `NotificationRepository`, `SearchRepository` returning `ApiResult<T>` (sealed Success/Error via `safeApiCall`/`safeApiCallUnit` — see Sprint 9 notes on when to use which).
 - **`di/NetworkModule`** — two OkHttp/Retrofit stacks via `@PlainClient` (public auth, no token/authenticator → breaks the refresh DI cycle) and `@AuthClient` (Bearer + auto-refresh).
-- **`domain/model/`** — UI-facing models mirroring web `types/index.ts` (`User`, `Post`, `Author`, `QuotedPost`, `CursorPage`, `AuthSession`).
-- **`ui/`** — `common/` (Avatar w/ Coil + initial fallback, `TimeFormat` relative-time, `InfiniteListHandler`, Loading/Error/Empty), `auth/`, `feed/` (`PostCard`, `HomeScreen`, `FeedViewModel`), `post/` (compose + detail), `profile/` (profile + edit).
-- **`navigation/BoondiNavHost`** — `BoondiApp()` + `Routes`; start destination and global login/logout navigation driven by `MainViewModel.authState` (observes `SessionManager`).
+- **`domain/model/`** — UI-facing models mirroring web `types/index.ts` (`User`, `Post`, `Author`, `QuotedPost`, `CursorPage`, `AuthSession`, `Notification`, `Hashtag`) + `PostInteractions.kt` (optimistic-toggle helpers, Sprint 9).
+- **`ui/`** — `common/` (Avatar w/ Coil + initial fallback, `TimeFormat` relative-time, `InfiniteListHandler`, Loading/Error/Empty), `auth/`, `feed/` (`PostCard`, `HomeScreen`, `FeedViewModel`), `post/` (compose/reply + detail), `profile/` (profile + edit), `bookmarks/`, `notifications/`, `search/`, `shell/` (`HomeShell` bottom-nav, Sprint 9).
+- **`navigation/BoondiNavHost`** — `BoondiApp()` + `Routes`; start destination and global login/logout navigation driven by `MainViewModel.authState` (observes `SessionManager`). `Routes.HOME` renders `HomeShell` (Sprint 9), not a bare screen.
 
 ### Key decisions & notes
 
 - **No `GET /users/me` endpoint exists** — the app persists the login `user` in `TokenStorage` and resolves "own profile" via that username (`GET /users/{username}`).
 - **Registration auto-logs-in** (backend returns tokens on `POST /auth/register`), so register → home directly. If a future backend change stops returning tokens on register, `AuthRepository.register` would need to route to login instead.
-- **Interaction endpoints** (like/repost/bookmark) are declared in `PostApi`/`PostRepository` but **not yet wired into the UI** — that's Sprint 9 (E6-16). Post cards show counts + viewer-state styling only.
-- **Reply composition** is deferred to Sprint 9 (E6-18); Sprint 8's detail screen shows the post + replies read-only and reuses `ComposePostScreen`'s `parentPostId` param (already supported) later.
+- **Interaction endpoints** (like/repost/bookmark) are wired into the UI with optimistic updates as of Sprint 9 (E6-16) — see that section below for the pattern (`domain/model/PostInteractions.kt`).
+- **Reply composition** shipped in Sprint 9 (E6-18) by reusing `ComposePostScreen`'s `parentPostId` param.
 - **Networking deps added** (`app/build.gradle.kts`): Retrofit 2.11.0 + converter-moshi, Moshi 1.15.1 (+ `moshi-kotlin`), OkHttp 4.12.0 (+ logging), `androidx.security:security-crypto` 1.1.0-alpha06, Coil 2.7.0, lifecycle-*-compose, material-icons-extended. `BuildConfig.BASE_URL` added (10.0.2.2 for emulator→host).
 - **Cleartext HTTP** to the dev backend is allowed only for `10.0.2.2`/`localhost`/`127.0.0.1` via `res/xml/network_security_config.xml` (production stays HTTPS-only).
 
-## Backend API Summary (Sprints 1–7)
+## Backend API Summary (Sprints 1–9)
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
@@ -463,6 +478,12 @@ Clean-ish layering, Hilt DI throughout, MVVM (StateFlow-based `UiState` per scre
 | GET | /search/posts?q= | Public | Full-text search posts (offset cursor) |
 | GET | /search/hashtags?q= | Public | Search hashtags by prefix (offset cursor) |
 | GET | /hashtags/trending | Public | Top 10 hashtags, last 24h (Redis-cached) |
+| POST | /reports | Required | Report a post or user (exactly one target) |
+| GET | /admin/users | Admin | List users, newest first (cursor) |
+| PUT | /admin/users/{userId}/suspend | Admin | Suspend a user |
+| PUT | /admin/users/{userId}/unsuspend | Admin | Unsuspend a user |
+| DELETE | /admin/posts/{postId} | Admin | Delete any post (moderation) |
+| GET | /admin/reports | Admin | List reports, newest first (cursor) |
 | GET | /health | Public | Health check |
 
 ---
@@ -497,30 +518,61 @@ Web:    http://localhost:5173 (Vite dev server)
 | Epic 3 | User Profiles | 20 | 20 | 0 (Android E3-06/07 done Sprint 8) |
 | Epic 4 | Posts | 29 | 29 | 0 (Android E4-09/10/11 done Sprint 8) |
 | Epic 5 | Timeline & Feed | 31 | 29 | 2 (Android E5-08/09 done Sprint 8; remainder is pre-existing point drift) |
-| Epic 6 | Social Interactions | 41 | 35 | 6 (Android Sprint 9: E6-16/17/18/19) |
-| Epic 7 | Notifications | 20 | 16 | 4 (Android Sprint 9: E7-08/09) |
-| Epic 8 | Search | 23 | 20 | 3 (Android Sprint 9: E8-08) |
-| Epic 9 | Admin | 16 | 0 | 16 |
-| Epic 10 | Polish/Testing/Launch | 50 | 0 | 50 |
+| Epic 6 | Social Interactions | 41 | 41 | 0 (Android E6-16/17/18/19 done Sprint 9) |
+| Epic 7 | Notifications | 20 | 20 | 0 (Android E7-08/09 done Sprint 9) |
+| Epic 8 | Search | 23 | 23 | 0 (Android E8-08 done Sprint 9) |
+| Epic 9 | Admin | 16 | 16 | 0 (done Sprint 9) |
+| Epic 10 | Polish/Testing/Launch | 50 | 0 | 50 (Sprint 10) |
 
 ---
 
-## Sprint 9 Preview (next session)
+## Sprint 9 — COMPLETE ✅
 
-**Focus (per Sprint-and-Release-Plan.md §6, Sprint 9):** Android social interactions complete + Admin panel live on web. Android private-beta ready. **Release `v0.3.0`** at sprint end. This sprint reintroduces backend work (the Admin epic), unlike Sprints 7–8.
+**Sprint Goal (per Sprint-and-Release-Plan.md §6, Sprint 9):** Android social interactions complete + Admin panel live on web/backend. Android private-beta ready (`v0.3.0` milestone — tag not cut this session; see note below).
 
-**Committed stories per the plan:**
-- **Android:** E6-16 (like/bookmark/repost interactions on post card — optimistic), E6-17 (follow/unfollow on profile), E6-18 (reply screen), E6-19 (bookmarks screen), E7-08 (notifications screen), E7-09 (unread badge on bottom nav), E8-08 (search screen — Users/Posts/Hashtags tabs).
-- **Admin (backend + web):** E9-01 (admin role + RBAC `@PreAuthorize`), E9-02 (suspend/unsuspend user), E9-03 (admin delete post), E9-04 (get reports), E9-05 (create report), E9-06 (web admin panel).
+| ID | Story | Status |
+|----|-------|--------|
+| E6-16 | Android: Like/Bookmark/Repost interactions on post card (optimistic) | ✅ |
+| E6-17 | Android: Follow/Unfollow on profile | ✅ (shipped Sprint 8; confirmed it already met this story's criteria) |
+| E6-18 | Android: Reply screen (parent post preview + composer) | ✅ |
+| E6-19 | Android: Bookmarks screen | ✅ |
+| E7-08 | Android: Notifications screen | ✅ |
+| E7-09 | Android: Unread badge on bottom nav | ✅ |
+| E8-08 | Android: Search screen (Users/Posts/Hashtags tabs) | ✅ |
+| E9-01 | Backend: Admin role + RBAC enforcement | ✅ |
+| E9-02 | Backend: Suspend/unsuspend user API | ✅ |
+| E9-03 | Backend: Admin delete post API | ✅ |
+| E9-04 | Backend: Get reports API (paginated) | ✅ |
+| E9-05 | Backend: Create report API (user-facing) | ✅ |
+| E9-06 | Web: Admin panel (`/admin`) | ✅ |
 
-**Groundwork already in place from Sprint 8 (reduces Sprint 9 effort):**
-- **Interaction endpoints already declared** in `PostApi`/`PostRepository` (`like/unlike/repost/unrepost/bookmark/unbookmark`, all returning the updated `Post`) — E6-16 is UI wiring + optimistic state only.
-- **E6-17 (follow/unfollow on profile) is effectively already done** — `ProfileViewModel.toggleFollow()` + the Follow/Following button ship in Sprint 8. Verify against the story's acceptance criteria; likely just confirm.
-- **`ComposePostScreen` already accepts `parentPostId`** — E6-18 (reply screen) is a new route reusing it with a parent-post preview header.
-- **No bottom navigation bar yet** — Sprint 8 uses a top-bar + FAB home shell. E7-09 (unread badge on bottom nav) implies introducing a `Scaffold(bottomBar=…)` app shell; that shell is also the natural home for Notifications/Search tabs. Plan this early in Sprint 9.
-- **`GET /notifications`, `/notifications/unread-count`, `/search/*` all exist and are stable** — Android just needs `NotificationApi`/`SearchApi` Retrofit interfaces + DTOs (mirror the existing DTO pattern) + screens.
+### Admin epic (E9-01→06) — backend + web
 
-**Before writing more Android code:** run `JAVA_HOME="C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot" ./gradlew :app:assembleDebug` once with memory freed (or in Android Studio) to produce/install the APK and smoke-test the Sprint 8 flow end-to-end against a running backend (`docker compose up`).
+- **RBAC groundwork was already in place**: `UserRole.ADMIN`, `User.isSuspended`, `@EnableMethodSecurity`, and `CustomUserDetailsService` granting `ROLE_ADMIN`/`ROLE_USER` authorities all predate this sprint. E9-01 was mostly `@PreAuthorize("hasRole('ADMIN')")` on the new `AdminController` (class-level) plus one real gap: **`GlobalExceptionHandler` had no handler for Spring Security's `AccessDeniedException`**, so a non-admin hitting an admin route would have fallen through to the generic 500 handler instead of a 403. Added a dedicated handler mapping to `ACCESS_DENIED`.
+- **Flyway V7** (`reports` table): `reporter_id` (FK), `reported_user_id` **or** `reported_post_id` (both nullable FKs, enforced exactly-one via a `CHECK` constraint), `reason`, `created_at`.
+- **`ReportService`**: `createReport` validates exactly one target is set and rejects self-reports (`cannotReportSelf`); `getReports` paginates admin-side by `createdAt` cursor (same pattern as `NotificationService`).
+- **`AdminService`**: `getUsers` (new `UserRepository.findAllForAdmin` cursor query — **not a separately-planned story**, but required infrastructure for E9-06's user list, same "flagged gap" pattern Sprint 7 used for bookmarks/unread-count), `suspendUser`/`unsuspendUser` (flip `User.isSuspended`), `deletePost` (delegates to a new `PostService.adminDeletePost`).
+- **`PostService` refactor**: extracted the soft-delete + counter-rollback logic from `deletePost(postId, userId)` into a private `softDeletePost(post)` helper, reused by the new `adminDeletePost(postId)` (same effect, no ownership check).
+- **`UserResponse` gained a `suspended` boolean** (mapped from `User.isSuspended`) — didn't exist before; the admin panel needs it to render Suspend vs. Unsuspend, and there was no other way to know a user's suspension state from the API.
+- **Web**: `AdminPage` (`/admin`, admin-only via new `AdminRoute` guard checking `user.role === 'ADMIN'`) with Users tab (list + suspend/unsuspend) and Reports tab (list + view reported user/post + delete post). Nav entry point: a shield icon on `HomePage`'s top bar, shown only when `user?.role === 'ADMIN'`.
+
+### Android social/search track (E6-16→E8-08)
+
+- **E6-16 optimistic interactions**: `Post.withLikeToggled()/withRepostToggled()/withBookmarkToggled()` (new `domain/model/PostInteractions.kt`) flip local state immediately; each screen's ViewModel (`FeedViewModel`, `ProfileViewModel`, `PostDetailViewModel`, `BookmarksViewModel`, `SearchViewModel`) applies the optimistic `Post` to its list, fires the API call, and either replaces with the server's response or reverts on failure. `PostCard` gained `onReplyClick`/`onLikeClick`/`onRepostClick`/`onBookmarkClick` (bookmark icon didn't exist on the card before this sprint); `PostDetailScreen`'s `DetailPostHeader` got the same real action bar (previously read-only counts).
+- **E6-18 reply screen**: reused `ComposePostScreen` rather than a new screen — `Routes.COMPOSE` became `"compose?parentPostId={parentPostId}"` (optional nav arg), and `ComposePostViewModel` now reads `parentPostId` from `SavedStateHandle`, fetches that parent post, and exposes it for a read-only "Replying to @username" preview header. Every `PostCard`'s reply icon and `DetailPostHeader`'s reply stat now navigate here.
+- **E6-19 bookmarks**: `GET /users/me/bookmarks` (existed since Sprint 7) → new `UserApi.getMyBookmarks` + `UserRepository.getMyBookmarks` + `BookmarksViewModel`/`BookmarksScreen`. Entry point is a bookmark icon on the Home tab's top bar (bottom nav was reserved for Home/Search/Alerts/Profile — see below).
+- **E7-08/09 notifications + badge**: `NotificationApi`/`NotificationRepository`/`NotificationsViewModel`/`NotificationsScreen`/`NotificationItem` (unread dot + tinted row, "Mark all read", type→action-text mapping, taps navigate to the post or — for `FOLLOW` — the actor's profile). The unread **badge** lives in a new `NavShellViewModel` (polls `GET /notifications/unread-count` every 30s while the shell is alive) and renders via `BadgedBox` on the bottom nav's Alerts tab.
+- **E8-08 search**: `SearchApi`/`SearchRepository`/`SearchViewModel`/`SearchScreen`. 300ms-debounced query (`Flow.debounce`, mirrors the web app's `setTimeout` debounce), three independent tabs (Users/Posts/Hashtags) that only fetch the active tab and re-fetch on tab switch — same trade-off Sprint 7's web `SearchPage` made. Tapping a hashtag result searches that tag on the Posts tab (no hashtag-detail route, same as web).
+- **Bottom-nav shell** (introduced to host Search/Alerts/Profile + the E7-09 badge): new `ui/shell/HomeShell.kt` wraps a **nested** `NavController`/`NavHost` (Home/Search/Notifications/Profile-self tabs) inside a `Scaffold(bottomBar = NavigationBar {...})`. The *outer* `BoondiNavHost`'s `Routes.HOME` now renders `HomeShell` instead of `HomeScreen` directly; all cross-cutting navigation (opening any post, another user's profile, compose, edit profile) still goes through the outer `NavController` passed in via callbacks, so those destinations correctly cover the bottom bar when pushed. `ProfileScreen.onBack` became nullable (`(() -> Unit)?`) — the shell's own-profile tab has no back stack to pop, so the arrow is hidden there rather than wired to a no-op.
+- **Bug fix (pre-existing, found while building E7-08's mark-as-read)**: the backend returns `ApiResponse.success(null, "...")` — a genuinely null `data` — for `DELETE /posts/{id}`, `PUT /notifications/{id}/read`, and `PUT /notifications/read-all`. The original `safeApiCall` helper treated `success == true && data == null` as a **failure** (it requires non-null data), so `PostRepository.deletePost` had been silently broken since Sprint 8 — deleting a post always surfaced as an error to the UI even though the server had already deleted it. Added `safeApiCallUnit` (checks only `envelope.success`, ignores `data`) and switched `deletePost`/`markAsRead`/`markAllAsRead` to it.
+
+### Build verification
+
+- **Backend**: `./mvnw -q -o compile` — clean, including the new `Report`/`AdminController`/`ReportController`/`AdminService`/`ReportService`/`ReportMapper` and the `GlobalExceptionHandler`/`PostService`/`UserResponse`/`UserMapper` edits.
+- **Web**: `npx tsc -b` — clean, including `AdminPage`, `AdminRoute`, `adminApi`, and the `Report`/`UserProfile.suspended` type additions.
+- **Android**: `JAVA_HOME=<jdk21> ./gradlew :app:compileDebugKotlin` — **BUILD SUCCESSFUL**, run and re-verified clean after each feature slice this sprint (interactions, reply, bookmarks, notifications, search, shell wiring) — `kspDebugKotlin` passing each time means the full Hilt graph (5 new repositories/APIs, half a dozen new ViewModels) resolves and type-checks.
+- **Android APK packaging (`assembleDebug`) was still not completed this session** — same root cause as Sprint 8: host RAM exhaustion during the `d8` dexing step (commit was 24.9 GB against a 27.7 GB limit, 0 free physical, at last check — tighter than Sprint 8's already-tight state). This is purely environmental; not attempted repeatedly since it wasn't going to newly succeed without freeing memory. **Next session (or whenever RAM is free): run `assembleDebug`/`installDebug` and smoke-test the full flow** (interactions, reply, bookmarks, notifications badge, search, admin panel) against a running backend.
+- **`v0.3.0` tag**: not cut — the plan ties it to Android private-beta readiness after a verified, installed build; do that once `assembleDebug` succeeds and the manual smoke test passes.
 
 ---
 
@@ -535,8 +587,21 @@ Web:    http://localhost:5173 (Vite dev server)
 7. **Web patterns:** All API calls use `apiClient` (axios) from `src/api/client.ts`. Responses unwrapped via `response.data.data`. Types from `src/types/index.ts`.
 8. **Backend patterns:** Controllers inject services, return `ResponseEntity<ApiResponse<T>>`. Services throw `BoondiException` factory methods. `@SQLRestriction` on soft-deletable entities.
 9. **Android build:** ALWAYS set `JAVA_HOME` to the Temurin **JDK 21** (`C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot`) — the system default JDK 25 breaks Gradle's embedded Kotlin. SDK is all API 36 (AGP 8.12.3, compileSdk 36, build-tools 36.1.0). If `assembleDebug` dies with a native `malloc`/daemon-disappeared error, it's host RAM exhaustion (close IDEs/browsers), not the code.
-10. **Android patterns:** MVVM + Hilt. Screens observe a `StateFlow<…UiState>` from a `@HiltViewModel`; repositories return `ApiResult<T>` (`safeApiCall`). `SessionManager` is the auth source of truth; nav reacts to its `AuthState`. DTOs (Moshi, `data/remote/dto`) map to `domain/model` via `toDomain()`.
+10. **Android patterns:** MVVM + Hilt. Screens observe a `StateFlow<…UiState>` from a `@HiltViewModel`; repositories return `ApiResult<T>` (`safeApiCall`) or `ApiResult<Unit>` (`safeApiCallUnit` — **use this one whenever the backend responds with `ApiResponse.success(null, "...")`**, e.g. delete/mark-read endpoints; `safeApiCall` misreads that null `data` as a failure). `SessionManager` is the auth source of truth; nav reacts to its `AuthState`. DTOs (Moshi, `data/remote/dto`) map to `domain/model` via `toDomain()`.
 
 ---
 
-*Last updated: 2026-07-06 | Sprint 8 complete*
+## Sprint 10 Preview (next session)
+
+**Focus (per Sprint-and-Release-Plan.md §6, Sprint 10):** Cross-cutting hardening — testing, security, performance, production deploy. **No new features.** This is the final sprint before `v1.0.0` MVP launch.
+
+**Committed stories per the plan:** E10-01 (global exception handler — largely done already, just confirm coverage), E10-02 (input validation audit), E10-03 (rate limiting — Bucket4j), E10-04 (backend unit tests, JUnit5+Mockito), E10-05 (backend integration tests, TestContainers), E10-06 (web error boundaries + empty states), E10-07 (web loading skeletons), E10-08 (web dark mode), E10-09 (Android offline/error states), E10-10 (Android app icon + splash), E10-11 (performance audit + Redis tuning), E10-12 (security review, OWASP Top 10), E10-13 (production deploy + Nginx SSL), E10-14 (Swagger completion), E10-15 (beta bug-fix buffer).
+
+**Before starting Sprint 10:**
+- **Get an Android APK actually installed and smoke-tested first.** Three sprints of Android code (8 and 9) have been verified only by `compileDebugKotlin`/`kspDebugKotlin` — never by running the app. This is the highest-risk gap heading into a testing/hardening sprint: run `assembleDebug`/`installDebug` on a machine with free RAM (or Android Studio) and manually walk every flow (auth, feed tabs, post CRUD, interactions, reply, bookmarks, profile edit, notifications+badge, search, admin panel) before writing E10-04/05 tests against behavior that's never been observed running.
+- **No `UserRole.ADMIN` seeding mechanism exists** — there's no Flyway data migration or startup seed that promotes any user to admin, so the admin panel/APIs are currently unreachable without a manual `UPDATE users SET role='ADMIN'` in psql. Sprint 10 doesn't have an explicit story for this, but it's needed to actually test/demo Epic 9 — worth a small addition if not already handled manually.
+- Backend/web are otherwise stable and unchanged in surface area since this sprint — Sprint 10 is testing/polish/deploy, not new endpoints (aside from whatever E10-12's security review surfaces).
+
+---
+
+*Last updated: 2026-07-07 | Sprint 9 complete*

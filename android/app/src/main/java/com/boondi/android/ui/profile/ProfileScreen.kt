@@ -49,10 +49,13 @@ import com.boondi.android.ui.feed.PostCard
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    onBack: () -> Unit,
+    // Null when this screen is the bottom-nav "Profile" tab root (E7-09 shell) — there's
+    // nothing to pop back to, so the back arrow is hidden rather than wired to a no-op.
+    onBack: (() -> Unit)?,
     onOpenPost: (String) -> Unit,
     onOpenProfile: (String) -> Unit,
     onEditProfile: () -> Unit,
+    onReply: (String) -> Unit,
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -74,8 +77,10 @@ fun ProfileScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
                     }
                 },
             )
@@ -106,6 +111,10 @@ fun ProfileScreen(
                                     post = post,
                                     onClick = { onOpenPost(post.id) },
                                     onAuthorClick = onOpenProfile,
+                                    onReplyClick = { onReply(post.id) },
+                                    onLikeClick = viewModel::toggleLike,
+                                    onRepostClick = viewModel::toggleRepost,
+                                    onBookmarkClick = viewModel::toggleBookmark,
                                 )
                             }
                         }

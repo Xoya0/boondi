@@ -61,6 +61,12 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: dev-secret-key-change-in-production-must-be-at-least-256-bits-long
+      # Both point at container hostnames (docker-compose network), not localhost — the
+      # backend runs inside its own container, so "localhost" would mean itself, not the
+      # mailhog/minio containers. STORAGE_PUBLIC_URL is deliberately left as localhost:9000
+      # (default) since that URL is handed to browser/app clients running on the host.
+      MAIL_HOST: mailhog
+      STORAGE_ENDPOINT: http://minio:9000
     depends_on:
       postgres:
         condition: service_healthy

@@ -23,7 +23,7 @@ public interface FollowRepository extends JpaRepository<Follow, Follow.FollowId>
     // Followers of :userId, newest follow first. Rows: [User, follow.createdAt (cursor)]
     @Query("SELECT u, f.createdAt FROM Follow f JOIN User u ON u.id = f.followerId " +
            "WHERE f.followeeId = :userId " +
-           "AND (:cursor IS NULL OR f.createdAt < :cursor) " +
+           "AND (cast(:cursor as timestamp) IS NULL OR f.createdAt < :cursor) " +
            "ORDER BY f.createdAt DESC")
     List<Object[]> findFollowers(@Param("userId") UUID userId,
                                  @Param("cursor") OffsetDateTime cursor,
@@ -32,7 +32,7 @@ public interface FollowRepository extends JpaRepository<Follow, Follow.FollowId>
     // Users that :userId follows, newest follow first. Rows: [User, follow.createdAt (cursor)]
     @Query("SELECT u, f.createdAt FROM Follow f JOIN User u ON u.id = f.followeeId " +
            "WHERE f.followerId = :userId " +
-           "AND (:cursor IS NULL OR f.createdAt < :cursor) " +
+           "AND (cast(:cursor as timestamp) IS NULL OR f.createdAt < :cursor) " +
            "ORDER BY f.createdAt DESC")
     List<Object[]> findFollowing(@Param("userId") UUID userId,
                                  @Param("cursor") OffsetDateTime cursor,

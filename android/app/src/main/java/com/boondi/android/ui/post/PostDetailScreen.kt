@@ -1,6 +1,8 @@
 package com.boondi.android.ui.post
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,7 +19,13 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -38,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -60,6 +70,7 @@ fun PostDetailScreen(
     onBack: () -> Unit,
     onOpenPost: (String) -> Unit,
     onOpenProfile: (String) -> Unit,
+    onReply: (String) -> Unit,
     viewModel: PostDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -109,6 +120,10 @@ fun PostDetailScreen(
                                 post = state.post!!,
                                 onOpenParent = { parentId -> onOpenPost(parentId) },
                                 onOpenProfile = onOpenProfile,
+                                onReplyClick = { onReply(state.post!!.id) },
+                                onLikeClick = viewModel::toggleLike,
+                                onRepostClick = viewModel::toggleRepost,
+                                onBookmarkClick = viewModel::toggleBookmark,
                             )
                             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
                             Text(
@@ -126,6 +141,10 @@ fun PostDetailScreen(
                                     post = reply,
                                     onClick = { onOpenPost(reply.id) },
                                     onAuthorClick = onOpenProfile,
+                                    onReplyClick = { onReply(reply.id) },
+                                    onLikeClick = viewModel::toggleLike,
+                                    onRepostClick = viewModel::toggleRepost,
+                                    onBookmarkClick = viewModel::toggleBookmark,
                                 )
                             }
                         }
@@ -163,6 +182,10 @@ private fun DetailPostHeader(
     post: Post,
     onOpenParent: (String) -> Unit,
     onOpenProfile: (String) -> Unit,
+    onReplyClick: () -> Unit,
+    onLikeClick: (Post) -> Unit,
+    onRepostClick: (Post) -> Unit,
+    onBookmarkClick: (Post) -> Unit,
 ) {
     Column(Modifier.fillMaxWidth().padding(16.dp)) {
         if (post.parentPostId != null) {
@@ -211,25 +234,72 @@ private fun DetailPostHeader(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(Modifier.height(8.dp))
-        Row {
-            CountLabel(post.replyCount, "Replies")
-            Spacer(Modifier.width(20.dp))
-            CountLabel(post.repostCount, "Reposts")
-            Spacer(Modifier.width(20.dp))
-            CountLabel(post.likeCount, "Likes")
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(32.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DetailActionStat(
+                icon = Icons.Outlined.ChatBubbleOutline,
+                count = post.replyCount,
+                tint = null,
+                onClick = onReplyClick,
+            )
+            DetailActionStat(
+                icon = Icons.Outlined.Repeat,
+                count = post.repostCount,
+                tint = if (post.repostedByViewer) Color(0xFF10B981) else null,
+                onClick = { onRepostClick(post) },
+            )
+            DetailActionStat(
+                icon = if (post.likedByViewer) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                count = post.likeCount,
+                tint = if (post.likedByViewer) Color(0xFFEF4444) else null,
+                onClick = { onLikeClick(post) },
+            )
+            DetailActionStat(
+                icon = if (post.bookmarkedByViewer) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                count = post.bookmarkCount,
+                tint = if (post.bookmarkedByViewer) Color(0xFF4F46E5) else null,
+                onClick = { onBookmarkClick(post) },
+            )
         }
     }
 }
 
 @Composable
-private fun CountLabel(count: Int, label: String) {
-    Row {
-        Text("$count ", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
-        Text(
-            label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+private fun DetailActionStat(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    count: Int,
+    tint: Color?,
+    onClick: (() -> Unit)?,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = if (onClick != null) {
+            Modifier.clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            )
+        } else {
+            Modifier
+        },
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint ?: MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
         )
+        if (count > 0) {
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.bodySmall,
+                color = tint ?: MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }

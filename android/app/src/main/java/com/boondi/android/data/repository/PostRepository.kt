@@ -7,6 +7,7 @@ import com.boondi.android.data.remote.dto.CreatePostRequestDto
 import com.boondi.android.data.remote.dto.UpdatePostRequestDto
 import com.boondi.android.data.remote.dto.toDomain
 import com.boondi.android.data.safeApiCall
+import com.boondi.android.data.safeApiCallUnit
 import com.boondi.android.domain.model.CursorPage
 import com.boondi.android.domain.model.Post
 import com.squareup.moshi.Moshi
@@ -37,8 +38,10 @@ class PostRepository @Inject constructor(
         safeApiCall(moshi) { postApi.updatePost(id, UpdatePostRequestDto(content.trim(), imageUrl)) }
             .map { it.toDomain() }
 
+    // The backend responds with `data: null` on delete (ApiResponse.success(null, "...")),
+    // so this must use safeApiCallUnit — safeApiCall would misread that null as a failure.
     suspend fun deletePost(id: String): ApiResult<Unit> =
-        safeApiCall(moshi) { postApi.deletePost(id) }.map { }
+        safeApiCallUnit(moshi) { postApi.deletePost(id) }
 
     suspend fun uploadImage(bytes: ByteArray, mimeType: String?, fileName: String): ApiResult<String> =
         safeApiCall(moshi) { postApi.uploadImage(imagePart(bytes, mimeType, fileName)) }

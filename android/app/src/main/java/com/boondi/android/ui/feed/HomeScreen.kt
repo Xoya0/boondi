@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -44,6 +45,8 @@ fun HomeScreen(
     onOpenPost: (String) -> Unit,
     onOpenProfile: (String) -> Unit,
     onCompose: () -> Unit,
+    onReply: (String) -> Unit,
+    onOpenBookmarks: () -> Unit,
     viewModel: FeedViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -72,6 +75,9 @@ fun HomeScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenBookmarks) {
+                        Icon(Icons.Outlined.BookmarkBorder, contentDescription = "Bookmarks")
+                    }
                     IconButton(onClick = viewModel::logout) {
                         Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Sign out")
                     }
@@ -115,6 +121,10 @@ fun HomeScreen(
                                         post = post,
                                         onClick = { onOpenPost(post.id) },
                                         onAuthorClick = onOpenProfile,
+                                        onReplyClick = { onReply(post.id) },
+                                        onLikeClick = viewModel::toggleLike,
+                                        onRepostClick = viewModel::toggleRepost,
+                                        onBookmarkClick = viewModel::toggleBookmark,
                                     )
                                 }
                                 if (state.loadingMore) {

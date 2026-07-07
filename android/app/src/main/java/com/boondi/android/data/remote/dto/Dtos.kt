@@ -134,3 +134,26 @@ data class UpdatePostRequestDto(
     val content: String,
     val imageUrl: String? = null,
 )
+
+// ---------- Notifications ----------
+
+data class NotificationDto(
+    val id: String? = null,
+    val type: String? = null,
+    val actor: AuthorDto? = null,
+    val postId: String? = null,
+    val postContentPreview: String? = null,
+    val read: Boolean = false,
+    val createdAt: String? = null,
+)
+
+data class UnreadCountDto(
+    val count: Long = 0,
+)
+
+// ---------- Search ----------
+
+data class HashtagDto(
+    val tag: String? = null,
+    val postCount: Long = 0,
+)

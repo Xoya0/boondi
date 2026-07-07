@@ -15,7 +15,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     // Latest timeline — all posts reverse-chronological (public)
     @Query("SELECT p FROM Post p JOIN FETCH p.author " +
            "LEFT JOIN FETCH p.quotedPost q LEFT JOIN FETCH q.author " +
-           "WHERE (:cursor IS NULL OR p.createdAt < :cursor) " +
+           "WHERE (cast(:cursor as timestamp) IS NULL OR p.createdAt < :cursor) " +
            "ORDER BY p.createdAt DESC")
     List<Post> findLatestTimeline(@Param("cursor") OffsetDateTime cursor, Pageable pageable);
 
@@ -23,7 +23,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     @Query("SELECT p FROM Post p JOIN FETCH p.author " +
            "LEFT JOIN FETCH p.quotedPost q LEFT JOIN FETCH q.author " +
            "WHERE p.author.id IN (SELECT f.followeeId FROM Follow f WHERE f.followerId = :userId) " +
-           "AND (:cursor IS NULL OR p.createdAt < :cursor) " +
+           "AND (cast(:cursor as timestamp) IS NULL OR p.createdAt < :cursor) " +
            "ORDER BY p.createdAt DESC")
     List<Post> findHomeTimeline(@Param("userId") UUID userId,
                                 @Param("cursor") OffsetDateTime cursor,
@@ -33,7 +33,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     @Query("SELECT p FROM Post p JOIN FETCH p.author " +
            "LEFT JOIN FETCH p.quotedPost q LEFT JOIN FETCH q.author " +
            "WHERE p.author.username = :username " +
-           "AND (:cursor IS NULL OR p.createdAt < :cursor) " +
+           "AND (cast(:cursor as timestamp) IS NULL OR p.createdAt < :cursor) " +
            "ORDER BY p.createdAt DESC")
     List<Post> findUserTimeline(@Param("username") String username,
                                 @Param("cursor") OffsetDateTime cursor,
@@ -50,7 +50,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     // Replies to a post, oldest first (conversation order)
     @Query("SELECT p FROM Post p JOIN FETCH p.author " +
            "WHERE p.parentPost.id = :parentPostId " +
-           "AND (:cursor IS NULL OR p.createdAt > :cursor) " +
+           "AND (cast(:cursor as timestamp) IS NULL OR p.createdAt > :cursor) " +
            "ORDER BY p.createdAt ASC")
     List<Post> findReplies(@Param("parentPostId") UUID parentPostId,
                            @Param("cursor") OffsetDateTime cursor,
@@ -80,7 +80,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
            "JOIN FETCH p.author " +
            "LEFT JOIN FETCH p.quotedPost q LEFT JOIN FETCH q.author " +
            "WHERE b.userId = :userId " +
-           "AND (:cursor IS NULL OR b.createdAt < :cursor) " +
+           "AND (cast(:cursor as timestamp) IS NULL OR b.createdAt < :cursor) " +
            "ORDER BY b.createdAt DESC")
     List<Object[]> findBookmarkedPosts(@Param("userId") UUID userId,
                                        @Param("cursor") OffsetDateTime cursor,

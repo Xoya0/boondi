@@ -7,6 +7,10 @@ import com.boondi.android.data.ApiResult
 import com.boondi.android.data.local.SessionManager
 import com.boondi.android.data.repository.PostRepository
 import com.boondi.android.domain.model.Post
+import com.boondi.android.domain.model.replacing
+import com.boondi.android.domain.model.withBookmarkToggled
+import com.boondi.android.domain.model.withLikeToggled
+import com.boondi.android.domain.model.withRepostToggled
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -94,6 +98,50 @@ class PostDetailViewModel @Inject constructor(
         viewModelScope.launch {
             if (postRepository.deletePost(postId) is ApiResult.Success) {
                 _deleted.emit(Unit)
+            }
+        }
+    }
+
+    fun toggleLike(post: Post) = toggleInteraction(
+        post = post,
+        optimistic = Post::withLikeToggled,
+        call = { p -> if (p.likedByViewer) postRepository.like(p.id) else postRepository.unlike(p.id) },
+    )
+
+    fun toggleRepost(post: Post) = toggleInteraction(
+        post = post,
+        optimistic = Post::withRepostToggled,
+        call = { p -> if (p.repostedByViewer) postRepository.repost(p.id) else postRepository.unrepost(p.id) },
+    )
+
+    fun toggleBookmark(post: Post) = toggleInteraction(
+        post = post,
+        optimistic = Post::withBookmarkToggled,
+        call = { p -> if (p.bookmarkedByViewer) postRepository.bookmark(p.id) else postRepository.unbookmark(p.id) },
+    )
+
+    /** [post] may be the focused post itself or one of its replies — updates whichever matches. */
+    private fun toggleInteraction(
+        post: Post,
+        optimistic: (Post) -> Post,
+        call: suspend (Post) -> ApiResult<Post>,
+    ) {
+        val updated = optimistic(post)
+        applyToState(updated)
+        viewModelScope.launch {
+            when (val res = call(updated)) {
+                is ApiResult.Success -> applyToState(res.data)
+                is ApiResult.Error -> applyToState(post)
+            }
+        }
+    }
+
+    private fun applyToState(updated: Post) {
+        _state.update {
+            if (it.post?.id == updated.id) {
+                it.copy(post = updated, replies = it.replies.replacing(updated))
+            } else {
+                it.copy(replies = it.replies.replacing(updated))
             }
         }
     }

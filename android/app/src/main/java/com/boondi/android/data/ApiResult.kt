@@ -42,6 +42,29 @@ suspend fun <T : Any> safeApiCall(
     ApiResult.Error(e.message ?: "Something went wrong")
 }
 
+/**
+ * Like [safeApiCall] but for endpoints whose success payload has no meaningful `data`
+ * (the backend sends `ApiResponse.success(null, "...")` — e.g. mark-as-read). Only
+ * `envelope.success` is checked, so a null `data` on success isn't misread as a failure.
+ */
+suspend fun <T> safeApiCallUnit(
+    moshi: Moshi,
+    call: suspend () -> ApiEnvelope<T>,
+): ApiResult<Unit> = try {
+    val envelope = call()
+    if (envelope.success) {
+        ApiResult.Success(Unit)
+    } else {
+        ApiResult.Error(envelope.message ?: "Request failed", envelope.errorCode)
+    }
+} catch (e: HttpException) {
+    parseHttpError(moshi, e)
+} catch (e: IOException) {
+    ApiResult.Error("Network error — check your connection")
+} catch (e: Exception) {
+    ApiResult.Error(e.message ?: "Something went wrong")
+}
+
 /** Extract the backend error envelope from a non-2xx HTTP response body. */
 fun parseHttpError(moshi: Moshi, e: HttpException): ApiResult.Error {
     val fallback = when (e.code()) {

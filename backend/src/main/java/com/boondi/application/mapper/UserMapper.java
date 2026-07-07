@@ -28,6 +28,7 @@ public class UserMapper {
                 .bannerImageUrl(user.getBannerImageUrl())
                 .role(user.getRole())
                 .emailVerified(user.isEmailVerified())
+                .suspended(user.isSuspended())
                 .followerCount(user.getFollowerCount())
                 .followingCount(user.getFollowingCount())
                 .postCount(user.getPostCount())

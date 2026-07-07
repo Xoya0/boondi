@@ -2,6 +2,9 @@ package com.boondi.android.data.remote.dto
 
 import com.boondi.android.domain.model.Author
 import com.boondi.android.domain.model.CursorPage
+import com.boondi.android.domain.model.Hashtag
+import com.boondi.android.domain.model.Notification
+import com.boondi.android.domain.model.NotificationType
 import com.boondi.android.domain.model.Post
 import com.boondi.android.domain.model.QuotedPost
 import com.boondi.android.domain.model.User
@@ -55,6 +58,25 @@ fun PostDto.toDomain(): Post = Post(
     likedByViewer = likedByViewer,
     repostedByViewer = repostedByViewer,
     bookmarkedByViewer = bookmarkedByViewer,
+)
+
+fun NotificationDto.toDomain(): Notification = Notification(
+    id = id.orEmpty(),
+    type = try {
+        NotificationType.valueOf(type.orEmpty())
+    } catch (_: IllegalArgumentException) {
+        NotificationType.UNKNOWN
+    },
+    actor = actor?.toDomain() ?: Author("", "", null, null),
+    postId = postId,
+    postContentPreview = postContentPreview,
+    read = read,
+    createdAt = createdAt.orEmpty(),
+)
+
+fun HashtagDto.toDomain(): Hashtag = Hashtag(
+    tag = tag.orEmpty(),
+    postCount = postCount,
 )
 
 /** Map a page of DTOs into a page of domain models. */

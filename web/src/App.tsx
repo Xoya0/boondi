@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { ProtectedRoute, PublicOnlyRoute } from './router'
+import { AdminRoute, ProtectedRoute, PublicOnlyRoute } from './router'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
@@ -11,6 +11,7 @@ import BookmarksPage from './pages/BookmarksPage'
 import FollowListPage from './pages/FollowListPage'
 import NotificationsPage from './pages/NotificationsPage'
 import SearchPage from './pages/SearchPage'
+import AdminPage from './pages/AdminPage'
 
 export default function App() {
   return (
@@ -34,6 +35,11 @@ export default function App() {
           <Route path="/bookmarks" element={<BookmarksPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/search" element={<SearchPage />} />
+        </Route>
+
+        {/* Admin-only: require auth AND role === 'ADMIN' */}
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<AdminPage />} />
         </Route>
 
         {/* Default */}

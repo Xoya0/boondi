@@ -246,4 +246,20 @@ public class BoondiException extends RuntimeException {
                 "You are not authorized to access this notification"
         );
     }
+
+    public static BoondiException invalidReportTarget() {
+        return new BoondiException(
+                ErrorCode.INVALID_REPORT_TARGET,
+                HttpStatus.BAD_REQUEST,
+                "Exactly one of reportedUserId or reportedPostId must be provided"
+        );
+    }
+
+    public static BoondiException cannotReportSelf() {
+        return new BoondiException(
+                ErrorCode.CANNOT_REPORT_SELF,
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                "You cannot report yourself"
+        );
+    }
 }

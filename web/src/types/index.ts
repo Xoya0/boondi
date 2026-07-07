@@ -17,6 +17,7 @@ export interface UserProfile {
   bannerImageUrl: string | null
   role: string
   emailVerified: boolean
+  suspended: boolean
   followerCount: number
   followingCount: number
   postCount: number
@@ -76,6 +77,34 @@ export interface Notification {
 export interface Hashtag {
   tag: string
   postCount: number
+}
+
+export interface ReporterInfo {
+  id: string
+  username: string
+  displayName: string | null
+}
+
+export interface ReportedUserInfo {
+  id: string
+  username: string
+  displayName: string | null
+}
+
+export interface ReportedPostInfo {
+  id: string
+  contentPreview: string
+  authorUsername: string
+}
+
+export interface Report {
+  id: string
+  reporter: ReporterInfo
+  // Exactly one of these is non-null
+  reportedUser: ReportedUserInfo | null
+  reportedPost: ReportedPostInfo | null
+  reason: string
+  createdAt: string
 }
 
 export interface CursorPage<T> {
