@@ -24,7 +24,18 @@
       "Bash(git -C \"c:\\\\Users\\\\dibya\\\\Documents\\\\Boondi\" branch -a)",
       "Read(//c/Users/dibya/.gradle/wrapper/dists/**)",
       "Read(//c/Program Files/Android/Android Studio/**)",
-      "Read(//c/Program Files/Android/Android Studio/plugins/**)"
+      "Read(//c/Program Files/Android/Android Studio/plugins/**)",
+      "Bash(timeout 15 curl -s -o /dev/null -w \"google-maven: %{http_code}\\\\n\" https://dl.google.com/dl/android/maven2/)",
+      "Bash(timeout 15 curl -s -o /dev/null -w \"maven-central: %{http_code}\\\\n\" https://repo1.maven.org/maven2/)",
+      "Read(//c/Program Files/Java/**)",
+      "Read(//c/Program Files/**)",
+      "Bash(winget --version)",
+      "PowerShell($w = Get-Command winget -ErrorAction SilentlyContinue; if \\($w\\) { \"winget: $\\($w.Source\\)\"; winget --version } else { \"winget NOT found\" })",
+      "Bash(export JAVA_HOME=\"/c/Program Files/Eclipse Adoptium/jdk-21.0.11.10-hotspot\")",
+      "Bash(./gradlew :app:assembleDebug)",
+      "PowerShell(Get-CimInstance *)",
+      "PowerShell(Stop-Process *)",
+      "PowerShell(Get-Process *)"
     ]
   }
 }

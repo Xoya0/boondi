@@ -7,8 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import androidx.navigation.compose.rememberNavController
-import com.boondi.android.navigation.BoondiNavHost
+import com.boondi.android.navigation.BoondiApp
 import com.boondi.android.ui.theme.BoondiTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -20,8 +19,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             BoondiTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    val navController = rememberNavController()
-                    BoondiNavHost(navController = navController)
+                    BoondiApp()
                 }
             }
         }
