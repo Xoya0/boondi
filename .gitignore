@@ -145,4 +145,9 @@ credentials/
 .cache/
 .terraform/
 
-C:\Users\dibya\Documents\Boondi\PROGRESS.md
+# ===========================
+# Project Specific Exclusions
+# ===========================
+doc/
+PROGRESS.md
+

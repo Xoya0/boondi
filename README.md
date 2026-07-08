@@ -396,31 +396,19 @@ src/test/java/com/boondi/
 
 ## Deployment
 
-### Production Build
+Full step-by-step production deployment and monitoring instructions (TLS setup, secrets, backups, DB/Redis/app monitoring, troubleshooting) live in **[`doc/Deployment-and-Monitoring-Guide.md`](doc/Deployment-and-Monitoring-Guide.md)**. Short version:
 
 ```bash
-cd backend
-docker build -t boondi-backend:latest .
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-### Production Checklist
+Production hardening already done as of Sprint 10 (see `PROGRESS.md`'s Sprint 10 section for the full audit): non-root Dockerfile user, Swagger UI/API docs disabled by default under the `prod` profile (`application-prod.yml`), actuator `show-details` set to `never` (not `always` — public health checks shouldn't leak DB/Redis internals), `JWT_SECRET` fails the app fast at startup if it's still the dev placeholder, and every secret in `docker-compose.prod.yml` is required (no silent defaults).
 
-- [ ] Set a strong random `JWT_SECRET`: `openssl rand -base64 64`
-- [ ] Set `SPRING_PROFILES_ACTIVE=prod`
-- [ ] Configure real SMTP server credentials
-- [ ] Configure production MinIO or AWS S3 credentials
-- [ ] Set `CORS_ORIGINS` to production domain only
-- [ ] Set `APP_BASE_URL` to production frontend URL
-- [ ] Disable Swagger UI (`@Profile("!prod")` on `SwaggerConfig`)
-- [ ] Change actuator `show-details` from `always` to `when-authorized`
-- [ ] Use secrets management (AWS Secrets Manager, Vault) — never commit secrets
-- [ ] Add a non-root user to Dockerfile
-- [ ] Add JVM container flags: `-XX:MaxRAMPercentage=75.0 -XX:+UseContainerSupport`
-
-### Health Check Endpoint
+### Health Check Endpoints
 
 ```
-GET /api/v1/actuator/health
+GET /health                    # app-level, no auth, minimal detail — what Nginx/Docker actually probe
+GET /api/v1/actuator/health    # bare UP/DOWN in prod (show-details: never)
 ```
 
 ---
