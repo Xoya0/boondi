@@ -11,10 +11,13 @@ interface QuotedPostPreviewProps {
  * quote-post (PostCard) and while composing a new one (QuoteComposerModal).
  */
 export default function QuotedPostPreview({ quotedPost, onClick }: QuotedPostPreviewProps) {
+  const Container = onClick ? 'button' : 'div'
+
   return (
-    <div
+    <Container
+      type={onClick ? 'button' : undefined}
       onClick={onClick}
-      className={`border border-stone-200 rounded-xl px-3 py-2 ${
+      className={`border border-stone-200 rounded-xl px-3 py-2 w-full text-left ${
         onClick ? 'hover:bg-stone-100 transition-colors cursor-pointer' : ''
       }`}
     >
@@ -22,9 +25,9 @@ export default function QuotedPostPreview({ quotedPost, onClick }: QuotedPostPre
         <span className="font-semibold text-stone-900">
           {quotedPost.author.displayName ?? quotedPost.author.username}
         </span>
-        <span className="text-stone-400">@{quotedPost.author.username}</span>
-        <span className="text-stone-300">·</span>
-        <span className="text-stone-400">{formatRelativeTime(quotedPost.createdAt)}</span>
+        <span className="text-stone-500">@{quotedPost.author.username}</span>
+        <span className="text-stone-300" aria-hidden="true">·</span>
+        <span className="text-stone-500">{formatRelativeTime(quotedPost.createdAt)}</span>
       </div>
       <p className="text-stone-700 text-sm mt-0.5 whitespace-pre-wrap break-words line-clamp-3">
         {quotedPost.content}
@@ -36,6 +39,6 @@ export default function QuotedPostPreview({ quotedPost, onClick }: QuotedPostPre
           className="mt-1.5 rounded-xl max-h-40 object-cover border border-stone-100"
         />
       )}
-    </div>
+    </Container>
   )
 }

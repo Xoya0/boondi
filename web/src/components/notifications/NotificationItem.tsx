@@ -47,6 +47,7 @@ export default function NotificationItem({ notification, onRead }: NotificationI
       />
 
       <div className="flex-1 min-w-0">
+        {!notification.read && <span className="sr-only">Unread: </span>}
         <p className="text-sm text-stone-800">
           <span className="font-semibold text-stone-900">
             {notification.actor.displayName ?? notification.actor.username}
@@ -56,11 +57,11 @@ export default function NotificationItem({ notification, onRead }: NotificationI
         {notification.postContentPreview && (
           <p className="text-stone-500 text-sm mt-0.5 truncate">{notification.postContentPreview}</p>
         )}
-        <p className="text-stone-400 text-xs mt-1">{formatRelativeTime(notification.createdAt)}</p>
+        <p className="text-stone-500 text-xs mt-1">{formatRelativeTime(notification.createdAt)}</p>
       </div>
 
       {!notification.read && (
-        <span className="w-2 h-2 rounded-full bg-brand-600 flex-shrink-0 mt-1.5" />
+        <span className="w-2 h-2 rounded-full bg-brand-600 flex-shrink-0 mt-1.5" aria-hidden="true" />
       )}
     </button>
   )

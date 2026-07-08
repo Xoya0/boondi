@@ -59,6 +59,12 @@ body {
   color-scheme: dark; /* native form controls, scrollbars, caret */
 }
 
+/* Page backdrop — matches .dark .bg-stone-50 below (light mode: body and bg-stone-50 are both
+ * the same cream, #fff8f0). Without this, centered-column layouts like HomePage's feed (which
+ * only paint bg-white on the max-w-xl column, not the full-bleed page) show raw cream margins
+ * on wide viewports even in dark mode. */
+.dark body { background-color: #2e2119; }
+
 /* Surfaces */
 .dark .bg-white { background-color: #241c16; }
 .dark .bg-white\/90 { background-color: rgb(36 28 22 / 0.9); }
@@ -81,7 +87,6 @@ body {
 .dark .text-stone-700 { color: #ddc9b4; }
 .dark .text-stone-600 { color: #c9b8a8; }
 .dark .text-stone-500 { color: #c9b8a8; }
-.dark .text-stone-400 { color: #a8927e; }
 .dark .text-stone-300 { color: #7a6b5c; }
 .dark .text-brand-600 { color: #fcd34d; }
 .dark .text-brand-500 { color: #fcd34d; }

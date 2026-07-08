@@ -32,7 +32,7 @@ export default class ErrorBoundary extends Component<Props, State> {
         <div className="text-center max-w-sm">
           <p className="text-4xl mb-4">😵</p>
           <h1 className="text-lg font-semibold text-stone-900 mb-2">Something went wrong</h1>
-          <p className="text-sm text-stone-400 mb-6">
+          <p className="text-sm text-stone-500 mb-6">
             An unexpected error occurred. Reloading usually fixes it — if it keeps
             happening, please let us know what you were doing.
           </p>

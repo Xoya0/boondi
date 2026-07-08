@@ -28,20 +28,14 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
 
       setAuth: (user, accessToken, refreshToken) => {
-        localStorage.setItem('accessToken', accessToken)
-        localStorage.setItem('refreshToken', refreshToken)
         set({ user, accessToken, refreshToken })
       },
 
       updateTokens: (accessToken, refreshToken) => {
-        localStorage.setItem('accessToken', accessToken)
-        localStorage.setItem('refreshToken', refreshToken)
         set({ accessToken, refreshToken })
       },
 
       logout: () => {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
         set({ user: null, accessToken: null, refreshToken: null })
       },
 
@@ -49,7 +43,10 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'boondi-auth',
-      // Only persist user info and tokens (localStorage handles actual token storage too)
+      // This store (and its zustand-managed localStorage persistence under the 'boondi-auth'
+      // key) is the SOLE source of truth for tokens — api/client.ts reads/writes tokens via
+      // useAuthStore.getState() rather than a separate raw localStorage key, so there's no
+      // second copy that can drift out of sync after a silent token refresh.
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

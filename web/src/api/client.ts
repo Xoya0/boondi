@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios'
 import type { InternalAxiosRequestConfig } from 'axios'
+import { useAuthStore } from '../store/authStore'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1'
 
@@ -8,9 +9,11 @@ export const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Attach access token to every request
+// Attach access token to every request. Reads from the zustand store (not a separate
+// localStorage key) so it always sees the latest token, including one written by a silent
+// refresh below.
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = localStorage.getItem('accessToken')
+  const token = useAuthStore.getState().accessToken
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -32,11 +35,10 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      const refreshToken = localStorage.getItem('refreshToken')
+      const refreshToken = useAuthStore.getState().refreshToken
       if (!refreshToken) {
         // No refresh token → force logout
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
+        useAuthStore.getState().logout()
         window.location.href = '/login'
         return Promise.reject(error)
       }
@@ -61,8 +63,7 @@ apiClient.interceptors.response.use(
         const newAccessToken: string = data.data.accessToken
         const newRefreshToken: string = data.data.refreshToken
 
-        localStorage.setItem('accessToken', newAccessToken)
-        localStorage.setItem('refreshToken', newRefreshToken)
+        useAuthStore.getState().updateTokens(newAccessToken, newRefreshToken)
 
         apiClient.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`
         processQueue(null, newAccessToken)
@@ -71,8 +72,7 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError, null)
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
+        useAuthStore.getState().logout()
         window.location.href = '/login'
         return Promise.reject(refreshError)
       } finally {

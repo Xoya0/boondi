@@ -104,6 +104,7 @@ export default function PostComposer({
             value={content}
             onChange={e => setContent(e.target.value)}
             placeholder={placeholder}
+            aria-label={placeholder}
             rows={3}
             className="w-full resize-none text-stone-800 text-sm placeholder-stone-400 border-none outline-none bg-transparent leading-relaxed"
           />
@@ -126,15 +127,16 @@ export default function PostComposer({
               <button
                 type="button"
                 onClick={removeImage}
+                aria-label="Remove image"
                 className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs cursor-pointer hover:bg-black/80"
               >
-                ✕
+                <span aria-hidden="true">✕</span>
               </button>
             </div>
           )}
 
           {/* Error */}
-          {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+          {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
 
           {/* Footer */}
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-stone-100">
@@ -144,9 +146,10 @@ export default function PostComposer({
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 className="text-brand-400 hover:text-brand-600 transition-colors cursor-pointer"
+                aria-label="Attach image"
                 title="Attach image"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
@@ -163,7 +166,7 @@ export default function PostComposer({
             <div className="flex items-center gap-3">
               {/* Character counter */}
               <span className={`text-xs tabular-nums ${
-                isOver ? 'text-red-500 font-medium' : remaining <= 50 ? 'text-amber-500' : 'text-stone-400'
+                isOver ? 'text-red-600 font-medium' : remaining <= 50 ? 'text-amber-600' : 'text-stone-500'
               }`}>
                 {remaining}
               </span>

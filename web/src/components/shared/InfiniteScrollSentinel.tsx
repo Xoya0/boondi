@@ -1,4 +1,5 @@
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll'
+import Spinner from './Spinner'
 
 interface InfiniteScrollSentinelProps {
   hasMore: boolean
@@ -14,9 +15,7 @@ export default function InfiniteScrollSentinel({ hasMore, loading, onLoadMore }:
 
   return (
     <div ref={sentinelRef} className="flex justify-center py-4">
-      {loading && (
-        <div className="animate-spin w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full" />
-      )}
+      {loading && <Spinner size="sm" />}
     </div>
   )
 }

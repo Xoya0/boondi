@@ -60,25 +60,27 @@ export default function RegisterPage() {
     <AuthLayout title="Create your account" subtitle="Join Boondi and start sharing">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
         {serverError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl" role="alert">
             {serverError}
           </div>
         )}
 
         <div>
           <label htmlFor="displayName" className="block text-sm font-medium text-stone-700 mb-1">
-            Display name <span className="text-stone-400">(optional)</span>
+            Display name <span className="text-stone-500">(optional)</span>
           </label>
           <input
             id="displayName"
             type="text"
             autoComplete="name"
             {...register('displayName')}
+            aria-invalid={!!errors.displayName}
+            aria-describedby={errors.displayName ? 'displayName-error' : undefined}
             className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
             placeholder="Your Name"
           />
           {errors.displayName && (
-            <p className="text-red-500 text-xs mt-1">{errors.displayName.message}</p>
+            <p id="displayName-error" className="text-red-600 text-xs mt-1">{errors.displayName.message}</p>
           )}
         </div>
 
@@ -87,18 +89,20 @@ export default function RegisterPage() {
             Username
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">@</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 text-sm" aria-hidden="true">@</span>
             <input
               id="username"
               type="text"
               autoComplete="username"
               {...register('username')}
+              aria-invalid={!!errors.username}
+              aria-describedby={errors.username ? 'username-error' : undefined}
               className="w-full pl-7 pr-4 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
               placeholder="yourhandle"
             />
           </div>
           {errors.username && (
-            <p className="text-red-500 text-xs mt-1">{errors.username.message}</p>
+            <p id="username-error" className="text-red-600 text-xs mt-1">{errors.username.message}</p>
           )}
         </div>
 
@@ -111,11 +115,13 @@ export default function RegisterPage() {
             type="email"
             autoComplete="email"
             {...register('email')}
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? 'email-error' : undefined}
             className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
             placeholder="you@example.com"
           />
           {errors.email && (
-            <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+            <p id="email-error" className="text-red-600 text-xs mt-1">{errors.email.message}</p>
           )}
         </div>
 
@@ -128,11 +134,13 @@ export default function RegisterPage() {
             type="password"
             autoComplete="new-password"
             {...register('password')}
+            aria-invalid={!!errors.password}
+            aria-describedby={errors.password ? 'password-error' : undefined}
             className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
             placeholder="Minimum 8 characters"
           />
           {errors.password && (
-            <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+            <p id="password-error" className="text-red-600 text-xs mt-1">{errors.password.message}</p>
           )}
         </div>
 
@@ -145,11 +153,13 @@ export default function RegisterPage() {
             type="password"
             autoComplete="new-password"
             {...register('confirmPassword')}
+            aria-invalid={!!errors.confirmPassword}
+            aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
             className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
             placeholder="••••••••"
           />
           {errors.confirmPassword && (
-            <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>
+            <p id="confirmPassword-error" className="text-red-600 text-xs mt-1">{errors.confirmPassword.message}</p>
           )}
         </div>
 

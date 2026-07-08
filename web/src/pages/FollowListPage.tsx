@@ -4,6 +4,9 @@ import type { CursorPage, UserProfile } from '../types'
 import { usersApi } from '../api/users'
 import UserListItem from '../components/shared/UserListItem'
 import InfiniteScrollSentinel from '../components/shared/InfiniteScrollSentinel'
+import Spinner from '../components/shared/Spinner'
+import EmptyState from '../components/shared/EmptyState'
+import ErrorState from '../components/shared/ErrorState'
 
 /** Renders /profile/:username/followers or /profile/:username/following (E6-15). */
 export default function FollowListPage() {
@@ -22,7 +25,7 @@ export default function FollowListPage() {
       ? usersApi.getFollowers(username!, cursor)
       : usersApi.getFollowing(username!, cursor)
 
-  useEffect(() => {
+  const load = () => {
     if (!username) return
     setLoading(true)
     setError(null)
@@ -31,7 +34,9 @@ export default function FollowListPage() {
       .then(setPage)
       .catch(() => setError('Failed to load. Please refresh.'))
       .finally(() => setLoading(false))
-  }, [username, mode])
+  }
+
+  useEffect(load, [username, mode])
 
   const loadMore = async () => {
     if (!page?.hasMore || loadingMore) return
@@ -51,35 +56,33 @@ export default function FollowListPage() {
         <button
           onClick={() => navigate(-1)}
           className="text-stone-600 hover:text-stone-900 cursor-pointer"
+          aria-label="Go back"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
         <div>
           <p className="font-bold text-stone-900 text-sm">@{username}</p>
-          <p className="text-stone-400 text-xs">{mode === 'followers' ? 'Followers' : 'Following'}</p>
+          <p className="text-stone-500 text-xs">{mode === 'followers' ? 'Followers' : 'Following'}</p>
         </div>
       </div>
 
       {loading && (
         <div className="flex justify-center py-12">
-          <div className="animate-spin w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full" />
+          <Spinner />
         </div>
       )}
 
-      {error && (
-        <div className="text-center py-12">
-          <p className="text-stone-400 text-sm">{error}</p>
-        </div>
-      )}
+      {error && <ErrorState message={error} onRetry={load} />}
 
       {!loading && !error && page && (
         <>
           {page.items.length === 0 ? (
-            <div className="text-center py-16 text-stone-400 text-sm">
-              {mode === 'followers' ? 'No followers yet.' : 'Not following anyone yet.'}
-            </div>
+            <EmptyState
+              icon="👥"
+              message={mode === 'followers' ? 'No followers yet.' : 'Not following anyone yet.'}
+            />
           ) : (
             page.items.map(u => <UserListItem key={u.id} user={u} />)
           )}

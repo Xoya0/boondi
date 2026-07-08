@@ -4,6 +4,9 @@ import type { CursorPage, Report, UserProfile } from '../types'
 import { adminApi } from '../api/admin'
 import Avatar from '../components/shared/Avatar'
 import InfiniteScrollSentinel from '../components/shared/InfiniteScrollSentinel'
+import Spinner from '../components/shared/Spinner'
+import EmptyState from '../components/shared/EmptyState'
+import ErrorState from '../components/shared/ErrorState'
 
 type Tab = 'users' | 'reports'
 
@@ -17,18 +20,21 @@ export default function AdminPage() {
         <button
           onClick={() => navigate('/home')}
           className="text-stone-600 hover:text-stone-900 cursor-pointer"
+          aria-label="Back to home"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
         <p className="font-bold text-stone-900 text-sm">Admin</p>
       </div>
 
-      <div className="flex border-b border-stone-100">
+      <div className="flex border-b border-stone-100" role="tablist" aria-label="Admin sections">
         {(['users', 'reports'] as const).map(t => (
           <button
             key={t}
+            role="tab"
+            aria-selected={tab === t}
             onClick={() => setTab(t)}
             className={`flex-1 py-3 text-sm font-medium capitalize cursor-pointer transition ${
               tab === t
@@ -53,14 +59,16 @@ function UsersTab() {
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadUsers = () => {
     setLoading(true)
     setError(null)
     adminApi.getUsers()
       .then(setPage)
       .catch(() => setError('Failed to load users.'))
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(loadUsers, [])
 
   const loadMore = async () => {
     if (!page?.hasMore || loadingMore) return
@@ -93,15 +101,15 @@ function UsersTab() {
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="animate-spin w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full" />
+        <Spinner />
       </div>
     )
   }
   if (error) {
-    return <div className="text-center py-12 text-stone-400 text-sm">{error}</div>
+    return <ErrorState message={error} onRetry={loadUsers} />
   }
   if (!page || page.items.length === 0) {
-    return <div className="text-center py-16 text-stone-400 text-sm">No users found.</div>
+    return <EmptyState icon="👤" message="No users found." />
   }
 
   return (
@@ -118,7 +126,7 @@ function UsersTab() {
                 </span>
               )}
             </p>
-            <p className="text-stone-400 text-sm truncate">@{user.username} · {user.email}</p>
+            <p className="text-stone-500 text-sm truncate">@{user.username} · {user.email}</p>
           </div>
           {user.suspended && (
             <span className="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded flex-shrink-0">
@@ -151,14 +159,16 @@ function ReportsTab() {
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadReports = () => {
     setLoading(true)
     setError(null)
     adminApi.getReports()
       .then(setPage)
       .catch(() => setError('Failed to load reports.'))
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(loadReports, [])
 
   const loadMore = async () => {
     if (!page?.hasMore || loadingMore) return
@@ -188,22 +198,22 @@ function ReportsTab() {
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="animate-spin w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full" />
+        <Spinner />
       </div>
     )
   }
   if (error) {
-    return <div className="text-center py-12 text-stone-400 text-sm">{error}</div>
+    return <ErrorState message={error} onRetry={loadReports} />
   }
   if (!page || page.items.length === 0) {
-    return <div className="text-center py-16 text-stone-400 text-sm">No reports.</div>
+    return <EmptyState icon="🚩" message="No reports." />
   }
 
   return (
     <>
       {page.items.map(report => (
         <div key={report.id} className="px-4 py-3 border-b border-stone-100">
-          <p className="text-xs text-stone-400">
+          <p className="text-xs text-stone-500">
             Reported by @{report.reporter.username}
           </p>
           <p className="text-sm text-stone-900 mt-1">{report.reason}</p>
@@ -219,7 +229,7 @@ function ReportsTab() {
 
           {report.reportedPost && (
             <div className="mt-2 border border-stone-200 rounded-xl p-3">
-              <p className="text-xs text-stone-400 mb-1">@{report.reportedPost.authorUsername}</p>
+              <p className="text-xs text-stone-500 mb-1">@{report.reportedPost.authorUsername}</p>
               <p className="text-sm text-stone-700 line-clamp-3">{report.reportedPost.contentPreview}</p>
               <div className="flex gap-3 mt-2">
                 <button
@@ -231,7 +241,7 @@ function ReportsTab() {
                 <button
                   onClick={() => handleDeletePost(report)}
                   disabled={busyId === report.id}
-                  className="text-sm text-red-500 hover:underline cursor-pointer disabled:opacity-60"
+                  className="text-sm text-red-600 hover:underline cursor-pointer disabled:opacity-60"
                 >
                   {busyId === report.id ? 'Deleting…' : 'Delete post'}
                 </button>

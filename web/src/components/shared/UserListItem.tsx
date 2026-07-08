@@ -36,7 +36,15 @@ export default function UserListItem({ user: initialUser }: UserListItemProps) {
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-b border-stone-100 hover:bg-stone-50 transition-colors">
-      <button onClick={() => navigate(`/profile/${user.username}`)} className="flex-shrink-0 cursor-pointer">
+      {/* Decorative + redundant with the name/handle button below, which navigates to the
+          same place — hidden from the tab order so keyboard/screen-reader users don't hit
+          the same destination twice in a row. */}
+      <button
+        onClick={() => navigate(`/profile/${user.username}`)}
+        className="flex-shrink-0 cursor-pointer"
+        tabIndex={-1}
+        aria-hidden="true"
+      >
         <Avatar src={user.profilePictureUrl} alt={user.displayName ?? user.username} size="sm" />
       </button>
 
@@ -47,7 +55,7 @@ export default function UserListItem({ user: initialUser }: UserListItemProps) {
         <p className="font-semibold text-stone-900 text-sm truncate">
           {user.displayName ?? user.username}
         </p>
-        <p className="text-stone-400 text-sm truncate">@{user.username}</p>
+        <p className="text-stone-500 text-sm truncate">@{user.username}</p>
         {user.bio && <p className="text-stone-600 text-sm mt-0.5 line-clamp-2">{user.bio}</p>}
       </button>
 

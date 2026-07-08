@@ -42,7 +42,7 @@ export default function LoginPage() {
     <AuthLayout title="Welcome back" subtitle="Sign in to your Boondi account">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
         {serverError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl" role="alert">
             {serverError}
           </div>
         )}
@@ -56,11 +56,13 @@ export default function LoginPage() {
             type="email"
             autoComplete="email"
             {...register('email')}
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? 'email-error' : undefined}
             className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
             placeholder="you@example.com"
           />
           {errors.email && (
-            <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+            <p id="email-error" className="text-red-600 text-xs mt-1">{errors.email.message}</p>
           )}
         </div>
 
@@ -81,11 +83,13 @@ export default function LoginPage() {
             type="password"
             autoComplete="current-password"
             {...register('password')}
+            aria-invalid={!!errors.password}
+            aria-describedby={errors.password ? 'password-error' : undefined}
             className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
             placeholder="••••••••"
           />
           {errors.password && (
-            <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+            <p id="password-error" className="text-red-600 text-xs mt-1">{errors.password.message}</p>
           )}
         </div>
 

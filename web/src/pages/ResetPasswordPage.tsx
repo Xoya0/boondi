@@ -67,7 +67,7 @@ export default function ResetPasswordPage() {
     <AuthLayout title="Set a new password" subtitle="Choose a strong password for your account">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
         {serverError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl" role="alert">
             {serverError}
           </div>
         )}
@@ -81,11 +81,13 @@ export default function ResetPasswordPage() {
             type="password"
             autoComplete="new-password"
             {...register('newPassword')}
+            aria-invalid={!!errors.newPassword}
+            aria-describedby={errors.newPassword ? 'newPassword-error' : undefined}
             className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
             placeholder="Minimum 8 characters"
           />
           {errors.newPassword && (
-            <p className="text-red-500 text-xs mt-1">{errors.newPassword.message}</p>
+            <p id="newPassword-error" className="text-red-600 text-xs mt-1">{errors.newPassword.message}</p>
           )}
         </div>
 
@@ -98,11 +100,13 @@ export default function ResetPasswordPage() {
             type="password"
             autoComplete="new-password"
             {...register('confirmPassword')}
+            aria-invalid={!!errors.confirmPassword}
+            aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
             className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
             placeholder="••••••••"
           />
           {errors.confirmPassword && (
-            <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>
+            <p id="confirmPassword-error" className="text-red-600 text-xs mt-1">{errors.confirmPassword.message}</p>
           )}
         </div>
 

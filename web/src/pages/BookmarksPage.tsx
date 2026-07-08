@@ -5,6 +5,8 @@ import { usersApi } from '../api/users'
 import PostCard from '../components/posts/PostCard'
 import InfiniteScrollSentinel from '../components/shared/InfiniteScrollSentinel'
 import { PostListSkeleton } from '../components/shared/PostCardSkeleton'
+import EmptyState from '../components/shared/EmptyState'
+import ErrorState from '../components/shared/ErrorState'
 
 export default function BookmarksPage() {
   const navigate = useNavigate()
@@ -13,14 +15,16 @@ export default function BookmarksPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadBookmarks = () => {
     setLoading(true)
     setError(null)
     usersApi.getMyBookmarks()
       .then(setPage)
       .catch(() => setError('Failed to load bookmarks. Please refresh.'))
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(loadBookmarks, [])
 
   const loadMore = async () => {
     if (!page?.hasMore || loadingMore) return
@@ -48,8 +52,9 @@ export default function BookmarksPage() {
         <button
           onClick={() => navigate(-1)}
           className="text-stone-600 hover:text-stone-900 cursor-pointer"
+          aria-label="Go back"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
@@ -58,18 +63,12 @@ export default function BookmarksPage() {
 
       {loading && <PostListSkeleton />}
 
-      {error && (
-        <div className="text-center py-12">
-          <p className="text-stone-400 text-sm">{error}</p>
-        </div>
-      )}
+      {error && <ErrorState message={error} onRetry={loadBookmarks} />}
 
       {!loading && !error && page && (
         <>
           {page.items.length === 0 ? (
-            <div className="text-center py-16 text-stone-400 text-sm">
-              No bookmarks yet. Tap the bookmark icon on any post to save it here.
-            </div>
+            <EmptyState icon="🔖" message="No bookmarks yet. Tap the bookmark icon on any post to save it here." />
           ) : (
             page.items.map(post => (
               <PostCard key={post.id} post={post} onDeleted={handlePostDeleted} />

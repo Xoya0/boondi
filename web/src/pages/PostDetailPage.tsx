@@ -5,6 +5,8 @@ import { postsApi } from '../api/posts'
 import PostCard from '../components/posts/PostCard'
 import PostComposer from '../components/posts/PostComposer'
 import InfiniteScrollSentinel from '../components/shared/InfiniteScrollSentinel'
+import Spinner from '../components/shared/Spinner'
+import EmptyState from '../components/shared/EmptyState'
 
 export default function PostDetailPage() {
   const { postId } = useParams<{ postId: string }>()
@@ -16,7 +18,7 @@ export default function PostDetailPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadPost = () => {
     if (!postId) return
     setLoading(true)
     setError(null)
@@ -29,7 +31,9 @@ export default function PostDetailPage() {
       })
       .catch(() => setError('Post not found or failed to load.'))
       .finally(() => setLoading(false))
-  }, [postId])
+  }
+
+  useEffect(loadPost, [postId])
 
   const loadMoreReplies = async () => {
     if (!repliesPage?.hasMore || loadingMore || !postId) return
@@ -64,7 +68,7 @@ export default function PostDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full" />
+        <Spinner />
       </div>
     )
   }
@@ -74,12 +78,20 @@ export default function PostDetailPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-stone-500 mb-4">{error ?? 'Post not found.'}</p>
-          <button
-            onClick={() => navigate(-1)}
-            className="text-brand-600 text-sm hover:underline cursor-pointer"
-          >
-            ← Go back
-          </button>
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="text-brand-600 text-sm hover:underline cursor-pointer"
+            >
+              ← Go back
+            </button>
+            <button
+              onClick={loadPost}
+              className="text-brand-600 text-sm hover:underline cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -92,8 +104,9 @@ export default function PostDetailPage() {
         <button
           onClick={() => navigate(-1)}
           className="text-stone-600 hover:text-stone-900 cursor-pointer"
+          aria-label="Go back"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
@@ -128,9 +141,7 @@ export default function PostDetailPage() {
       </div>
 
       {repliesPage && repliesPage.items.length === 0 ? (
-        <div className="text-center py-12 text-stone-400 text-sm">
-          No replies yet. Be the first to reply!
-        </div>
+        <EmptyState icon="💬" message="No replies yet. Be the first to reply!" />
       ) : (
         <>
           {repliesPage?.items.map(reply => (

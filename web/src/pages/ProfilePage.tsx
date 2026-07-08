@@ -6,6 +6,8 @@ import { useAuthStore } from '../store/authStore'
 import PostCard from '../components/posts/PostCard'
 import EditProfileModal from '../components/profile/EditProfileModal'
 import InfiniteScrollSentinel from '../components/shared/InfiniteScrollSentinel'
+import Spinner from '../components/shared/Spinner'
+import EmptyState from '../components/shared/EmptyState'
 import { formatFullDate } from '../utils/time'
 
 function StatPill({ value, label, to }: { value: number; label: string; to: string }) {
@@ -31,7 +33,7 @@ export default function ProfilePage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [followBusy, setFollowBusy] = useState(false)
 
-  useEffect(() => {
+  const loadProfile = () => {
     if (!username) return
     setLoading(true)
     setError(null)
@@ -45,7 +47,9 @@ export default function ProfilePage() {
       })
       .catch(() => setError('User not found or failed to load profile.'))
       .finally(() => setLoading(false))
-  }, [username])
+  }
+
+  useEffect(loadProfile, [username])
 
   const loadMorePosts = async () => {
     if (!postsPage?.hasMore || loadingMore || !username) return
@@ -98,7 +102,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full" />
+        <Spinner />
       </div>
     )
   }
@@ -108,12 +112,20 @@ export default function ProfilePage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-stone-500 mb-4">{error ?? 'Profile not found.'}</p>
-          <button
-            onClick={() => navigate(-1)}
-            className="text-brand-600 text-sm hover:underline cursor-pointer"
-          >
-            ← Go back
-          </button>
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="text-brand-600 text-sm hover:underline cursor-pointer"
+            >
+              ← Go back
+            </button>
+            <button
+              onClick={loadProfile}
+              className="text-brand-600 text-sm hover:underline cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -126,8 +138,9 @@ export default function ProfilePage() {
         <button
           onClick={() => navigate(-1)}
           className="text-stone-600 hover:text-stone-900 cursor-pointer"
+          aria-label="Go back"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
@@ -135,7 +148,7 @@ export default function ProfilePage() {
           <p className="font-bold text-stone-900 text-sm">
             {profile.displayName ?? profile.username}
           </p>
-          <p className="text-stone-400 text-xs">{profile.postCount} posts</p>
+          <p className="text-stone-500 text-xs">{profile.postCount} posts</p>
         </div>
       </div>
 
@@ -192,7 +205,7 @@ export default function ProfilePage() {
           <p className="font-bold text-stone-900 text-lg leading-tight">
             {profile.displayName ?? profile.username}
           </p>
-          <p className="text-stone-400 text-sm">@{profile.username}</p>
+          <p className="text-stone-500 text-sm">@{profile.username}</p>
         </div>
 
         {/* Bio */}
@@ -201,7 +214,7 @@ export default function ProfilePage() {
         )}
 
         {/* Joined date */}
-        <p className="text-stone-400 text-xs mb-3">
+        <p className="text-stone-500 text-xs mb-3">
           Joined {formatFullDate(profile.createdAt)}
         </p>
 
@@ -221,7 +234,7 @@ export default function ProfilePage() {
 
       {/* Posts list */}
       {postsPage && postsPage.items.length === 0 ? (
-        <div className="text-center py-16 text-stone-400 text-sm">No posts yet.</div>
+        <EmptyState icon="📝" message="No posts yet." />
       ) : (
         <>
           {postsPage?.items.map(post => (

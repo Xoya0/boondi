@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Post } from '../../types'
 import PostComposer from './PostComposer'
@@ -11,6 +12,14 @@ interface QuoteComposerModalProps {
 export default function QuoteComposerModal({ post, onClose }: QuoteComposerModalProps) {
   const navigate = useNavigate()
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
   const handlePosted = (quotePost: Post) => {
     onClose()
     navigate(`/post/${quotePost.id}`)
@@ -20,15 +29,18 @@ export default function QuoteComposerModal({ post, onClose }: QuoteComposerModal
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       onClick={e => e.target === e.currentTarget && onClose()}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="quote-composer-title"
     >
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100 sticky top-0 bg-white">
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 cursor-pointer">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button onClick={onClose} className="text-stone-500 hover:text-stone-600 cursor-pointer" aria-label="Close">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h2 className="font-semibold text-stone-900 text-sm">Quote post</h2>
+          <h2 id="quote-composer-title" className="font-semibold text-stone-900 text-sm">Quote post</h2>
           <div className="w-5" />
         </div>
 

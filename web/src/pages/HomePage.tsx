@@ -9,6 +9,8 @@ import PostCard from '../components/posts/PostCard'
 import PostComposer from '../components/posts/PostComposer'
 import InfiniteScrollSentinel from '../components/shared/InfiniteScrollSentinel'
 import { PostListSkeleton } from '../components/shared/PostCardSkeleton'
+import EmptyState from '../components/shared/EmptyState'
+import ErrorState from '../components/shared/ErrorState'
 import { currentTheme, toggleTheme } from '../theme'
 
 type FeedTab = 'latest' | 'home' | 'trending'
@@ -114,19 +116,20 @@ export default function HomePage() {
       {/* Top nav */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-stone-100 sticky top-0 bg-white/90 backdrop-blur z-10">
         <span className="font-bold text-brand-600 text-lg">Boondi</span>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <button
             onClick={() => setTheme(toggleTheme())}
             className="text-stone-500 hover:text-stone-900 cursor-pointer"
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {theme === 'dark' ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
             ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
               </svg>
@@ -135,18 +138,20 @@ export default function HomePage() {
           <button
             onClick={() => navigate('/search')}
             className="text-stone-500 hover:text-stone-900 cursor-pointer"
+            aria-label="Search"
             title="Search"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 10.5A6.5 6.5 0 114 10.5a6.5 6.5 0 0113 0z" />
             </svg>
           </button>
           <button
             onClick={() => navigate('/bookmarks')}
             className="text-stone-500 hover:text-stone-900 cursor-pointer"
+            aria-label="Bookmarks"
             title="Bookmarks"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
             </svg>
@@ -154,14 +159,18 @@ export default function HomePage() {
           <button
             onClick={() => navigate('/notifications')}
             className="relative text-stone-500 hover:text-stone-900 cursor-pointer"
+            aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
             title="Notifications"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+              <span
+                aria-hidden="true"
+                className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1"
+              >
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
@@ -170,9 +179,10 @@ export default function HomePage() {
             <button
               onClick={() => navigate('/admin')}
               className="text-stone-500 hover:text-stone-900 cursor-pointer"
+              aria-label="Admin panel"
               title="Admin panel"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
@@ -181,30 +191,43 @@ export default function HomePage() {
           {user && (
             <button
               onClick={() => navigate(`/profile/${user.username}`)}
-              className="text-sm text-stone-600 hover:text-stone-900 cursor-pointer"
+              className="text-sm text-stone-600 hover:text-stone-900 cursor-pointer hidden sm:inline-block"
             >
               @{user.username}
             </button>
           )}
           <button
             onClick={handleLogout}
-            className="text-xs text-stone-400 hover:text-stone-600 cursor-pointer"
+            className="text-xs text-stone-500 hover:text-stone-600 cursor-pointer hidden sm:inline-block"
           >
             Sign out
+          </button>
+          <button
+            onClick={handleLogout}
+            className="text-stone-500 hover:text-stone-900 cursor-pointer sm:hidden"
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
           </button>
         </div>
       </header>
 
       {/* Feed tabs */}
-      <div className="flex border-b border-stone-100">
+      <div className="flex border-b border-stone-100" role="tablist" aria-label="Feed">
         {(['latest', 'home', 'trending'] as FeedTab[]).map(tab => (
           <button
             key={tab}
+            role="tab"
+            aria-selected={activeTab === tab}
             onClick={() => switchTab(tab)}
             className={`flex-1 py-3 text-sm font-medium transition cursor-pointer ${
               activeTab === tab
                 ? 'text-stone-900 border-b-2 border-brand-600'
-                : 'text-stone-400 hover:text-stone-600'
+                : 'text-stone-500 hover:text-stone-600'
             }`}
           >
             {tab === 'latest' ? 'Latest' : tab === 'home' ? 'Home' : 'Trending'}
@@ -218,28 +241,21 @@ export default function HomePage() {
       {/* Feed content */}
       {loading && <PostListSkeleton />}
 
-      {error && (
-        <div className="text-center py-12">
-          <p className="text-stone-400 text-sm mb-3">{error}</p>
-          <button
-            onClick={() => fetchFeed(activeTab)}
-            className="text-brand-600 text-sm hover:underline cursor-pointer"
-          >
-            Retry
-          </button>
-        </div>
-      )}
+      {error && <ErrorState message={error} onRetry={() => fetchFeed(activeTab)} />}
 
       {!loading && !error && page && (
         <>
           {page.items.length === 0 ? (
-            <div className="text-center py-16 text-stone-400 text-sm">
-              {activeTab === 'home'
-                ? 'Follow some users to see their posts here.'
-                : activeTab === 'trending'
-                ? 'Nothing trending in the last 24h yet.'
-                : 'No posts yet. Be the first to post!'}
-            </div>
+            <EmptyState
+              icon={activeTab === 'home' ? '👋' : activeTab === 'trending' ? '📈' : '📝'}
+              message={
+                activeTab === 'home'
+                  ? 'Follow some users to see their posts here.'
+                  : activeTab === 'trending'
+                  ? 'Nothing trending in the last 24h yet.'
+                  : 'No posts yet. Be the first to post!'
+              }
+            />
           ) : (
             page.items.map(post => (
               <PostCard key={post.id} post={post} onDeleted={handlePostDeleted} />

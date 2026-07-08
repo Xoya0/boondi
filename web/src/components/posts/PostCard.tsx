@@ -30,7 +30,7 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
   // Resync when the parent renders a different post into this card slot
   useEffect(() => setPost(initialPost), [initialPost])
 
-  // Close the repost/quote menu on outside click
+  // Close the repost/quote menu on outside click or Escape
   useEffect(() => {
     if (!repostMenuOpen) return
     const handleClickOutside = (e: MouseEvent) => {
@@ -38,8 +38,15 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
         setRepostMenuOpen(false)
       }
     }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setRepostMenuOpen(false)
+    }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [repostMenuOpen])
 
   const handleDelete = async () => {
@@ -146,12 +153,12 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
           </Link>
           <Link
             to={`/profile/${post.author.username}`}
-            className="text-stone-400 text-sm"
+            className="text-stone-500 text-sm"
           >
             @{post.author.username}
           </Link>
-          <span className="text-stone-300 text-xs">·</span>
-          <span className="text-stone-400 text-xs" title={new Date(post.createdAt).toLocaleString()}>
+          <span className="text-stone-300 text-xs" aria-hidden="true">·</span>
+          <span className="text-stone-500 text-xs" title={new Date(post.createdAt).toLocaleString()}>
             {formatRelativeTime(post.createdAt)}
           </span>
           {post.edited && (
@@ -196,14 +203,15 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
           {/* Reply — opens the post detail page */}
           <button
             onClick={openDetail}
-            className="flex items-center gap-1.5 text-stone-400 hover:text-brand-500 text-xs transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 text-stone-500 hover:text-brand-500 text-xs transition-colors cursor-pointer"
+            aria-label={`Reply, ${post.replyCount} ${post.replyCount === 1 ? 'reply' : 'replies'}`}
             title="Reply"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                 d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            <span>{post.replyCount}</span>
+            <span aria-hidden="true">{post.replyCount}</span>
           </button>
 
           {/* Repost / Quote dropdown (E6-13) */}
@@ -211,27 +219,32 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
             <button
               onClick={handleRepostButtonClick}
               disabled={busy}
+              aria-haspopup="menu"
+              aria-expanded={repostMenuOpen}
               className={`flex items-center gap-1.5 text-xs transition-colors cursor-pointer disabled:opacity-60 ${
-                post.repostedByViewer ? 'text-green-600' : 'text-stone-400 hover:text-green-500'
+                post.repostedByViewer ? 'text-green-600' : 'text-stone-500 hover:text-green-500'
               }`}
+              aria-label={`${post.repostedByViewer ? 'Undo repost' : 'Repost or quote'}, ${post.repostCount} reposts`}
               title={post.repostedByViewer ? 'Undo repost' : 'Repost or quote'}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              <span>{post.repostCount}</span>
+              <span aria-hidden="true">{post.repostCount}</span>
             </button>
 
             {repostMenuOpen && (
-              <div className="absolute bottom-full left-0 mb-1 w-36 bg-white border border-stone-200 rounded-xl shadow-lg py-1 z-20">
+              <div role="menu" className="absolute bottom-full left-0 mb-1 w-36 bg-white border border-stone-200 rounded-xl shadow-lg py-1 z-20">
                 <button
+                  role="menuitem"
                   onClick={handleRepost}
                   className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 cursor-pointer"
                 >
                   Repost
                 </button>
                 <button
+                  role="menuitem"
                   onClick={handleQuote}
                   className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 cursor-pointer"
                 >
@@ -246,8 +259,10 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
             onClick={toggleLike}
             disabled={busy}
             className={`flex items-center gap-1.5 text-xs transition-colors cursor-pointer disabled:opacity-60 ${
-              post.likedByViewer ? 'text-rose-500' : 'text-stone-400 hover:text-rose-500'
+              post.likedByViewer ? 'text-rose-500' : 'text-stone-500 hover:text-rose-500'
             }`}
+            aria-label={`${post.likedByViewer ? 'Unlike' : 'Like'}, ${post.likeCount} likes`}
+            aria-pressed={post.likedByViewer}
             title={post.likedByViewer ? 'Unlike' : 'Like'}
           >
             <svg
@@ -255,11 +270,12 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
               fill={post.likedByViewer ? 'currentColor' : 'none'}
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                 d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
-            <span>{post.likeCount}</span>
+            <span aria-hidden="true">{post.likeCount}</span>
           </button>
 
           {/* Bookmark */}
@@ -267,8 +283,10 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
             onClick={toggleBookmark}
             disabled={busy}
             className={`flex items-center gap-1.5 text-xs transition-colors cursor-pointer disabled:opacity-60 ${
-              post.bookmarkedByViewer ? 'text-brand-600' : 'text-stone-400 hover:text-brand-500'
+              post.bookmarkedByViewer ? 'text-brand-600' : 'text-stone-500 hover:text-brand-500'
             }`}
+            aria-label={`${post.bookmarkedByViewer ? 'Remove bookmark' : 'Bookmark'}, ${post.bookmarkCount} bookmarks`}
+            aria-pressed={post.bookmarkedByViewer}
             title={post.bookmarkedByViewer ? 'Remove bookmark' : 'Bookmark'}
           >
             <svg
@@ -276,11 +294,12 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
               fill={post.bookmarkedByViewer ? 'currentColor' : 'none'}
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                 d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
             </svg>
-            <span>{post.bookmarkCount}</span>
+            <span aria-hidden="true">{post.bookmarkCount}</span>
           </button>
 
           {isOwner && (
@@ -288,9 +307,10 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
               onClick={handleDelete}
               disabled={deleting}
               className="ml-auto text-stone-300 hover:text-red-400 text-xs transition-colors cursor-pointer disabled:opacity-50"
+              aria-label="Delete post"
               title="Delete post"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>

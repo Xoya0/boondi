@@ -4,6 +4,9 @@ import type { CursorPage, Notification } from '../types'
 import { notificationsApi } from '../api/notifications'
 import NotificationItem from '../components/notifications/NotificationItem'
 import InfiniteScrollSentinel from '../components/shared/InfiniteScrollSentinel'
+import Spinner from '../components/shared/Spinner'
+import EmptyState from '../components/shared/EmptyState'
+import ErrorState from '../components/shared/ErrorState'
 
 export default function NotificationsPage() {
   const navigate = useNavigate()
@@ -13,14 +16,16 @@ export default function NotificationsPage() {
   const [error, setError] = useState<string | null>(null)
   const [markingAll, setMarkingAll] = useState(false)
 
-  useEffect(() => {
+  const loadNotifications = () => {
     setLoading(true)
     setError(null)
     notificationsApi.getNotifications()
       .then(setPage)
       .catch(() => setError('Failed to load notifications. Please refresh.'))
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(loadNotifications, [])
 
   const loadMore = async () => {
     if (!page?.hasMore || loadingMore) return
@@ -60,8 +65,9 @@ export default function NotificationsPage() {
           <button
             onClick={() => navigate(-1)}
             className="text-stone-600 hover:text-stone-900 cursor-pointer"
+            aria-label="Go back"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </button>
@@ -80,22 +86,16 @@ export default function NotificationsPage() {
 
       {loading && (
         <div className="flex justify-center py-12">
-          <div className="animate-spin w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full" />
+          <Spinner />
         </div>
       )}
 
-      {error && (
-        <div className="text-center py-12">
-          <p className="text-stone-400 text-sm">{error}</p>
-        </div>
-      )}
+      {error && <ErrorState message={error} onRetry={loadNotifications} />}
 
       {!loading && !error && page && (
         <>
           {page.items.length === 0 ? (
-            <div className="text-center py-16 text-stone-400 text-sm">
-              No notifications yet.
-            </div>
+            <EmptyState icon="🔔" message="No notifications yet." />
           ) : (
             page.items.map(n => (
               <NotificationItem key={n.id} notification={n} onRead={handleRead} />
