@@ -53,25 +53,25 @@ export default function NotificationsPage() {
   const hasUnread = page?.items.some(n => !n.read) ?? false
 
   return (
-    <div className="min-h-screen bg-white max-w-xl mx-auto border-x border-gray-100">
+    <div className="min-h-screen bg-white max-w-xl mx-auto border-x border-stone-100">
       {/* Back nav */}
-      <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-gray-100 sticky top-0 bg-white/90 backdrop-blur z-10">
+      <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-stone-100 sticky top-0 bg-white/90 backdrop-blur z-10">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="text-gray-600 hover:text-gray-900 cursor-pointer"
+            className="text-stone-600 hover:text-stone-900 cursor-pointer"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </button>
-          <p className="font-bold text-gray-900 text-sm">Notifications</p>
+          <p className="font-bold text-stone-900 text-sm">Notifications</p>
         </div>
         {hasUnread && (
           <button
             onClick={handleMarkAllRead}
             disabled={markingAll}
-            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer disabled:text-indigo-400"
+            className="text-xs text-brand-600 hover:text-brand-800 font-medium cursor-pointer disabled:text-brand-400"
           >
             {markingAll ? 'Marking…' : 'Mark all as read'}
           </button>
@@ -80,20 +80,20 @@ export default function NotificationsPage() {
 
       {loading && (
         <div className="flex justify-center py-12">
-          <div className="animate-spin w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full" />
+          <div className="animate-spin w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full" />
         </div>
       )}
 
       {error && (
         <div className="text-center py-12">
-          <p className="text-gray-400 text-sm">{error}</p>
+          <p className="text-stone-400 text-sm">{error}</p>
         </div>
       )}
 
       {!loading && !error && page && (
         <>
           {page.items.length === 0 ? (
-            <div className="text-center py-16 text-gray-400 text-sm">
+            <div className="text-center py-16 text-stone-400 text-sm">
               No notifications yet.
             </div>
           ) : (

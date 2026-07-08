@@ -67,6 +67,9 @@ services:
       # (default) since that URL is handed to browser/app clients running on the host.
       MAIL_HOST: mailhog
       STORAGE_ENDPOINT: http://minio:9000
+      # Registered account emails to auto-promote to ADMIN at startup (see AdminSeedConfig).
+      # Override per-machine: ADMIN_EMAILS=you@example.com docker compose up -d backend
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
     depends_on:
       postgres:
         condition: service_healthy

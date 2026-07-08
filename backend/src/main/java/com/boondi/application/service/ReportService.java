@@ -72,7 +72,7 @@ public class ReportService {
                 .reason(request.getReason().trim())
                 .build();
 
-        Report saved = reportRepository.save(report);
+        Report saved = reportRepository.saveAndFlush(report);
         log.info("Report created: reportId={}, reporterId={}", saved.getId(), reporterId);
         return reportMapper.toResponse(saved);
     }

@@ -11,8 +11,8 @@ import { formatFullDate } from '../utils/time'
 function StatPill({ value, label, to }: { value: number; label: string; to: string }) {
   return (
     <Link to={to} className="text-sm hover:underline">
-      <span className="font-bold text-gray-900">{value.toLocaleString()}</span>{' '}
-      <span className="text-gray-500">{label}</span>
+      <span className="font-bold text-stone-900">{value.toLocaleString()}</span>{' '}
+      <span className="text-stone-500">{label}</span>
     </Link>
   )
 }
@@ -98,7 +98,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full" />
       </div>
     )
   }
@@ -107,10 +107,10 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-500 mb-4">{error ?? 'Profile not found.'}</p>
+          <p className="text-stone-500 mb-4">{error ?? 'Profile not found.'}</p>
           <button
             onClick={() => navigate(-1)}
-            className="text-indigo-600 text-sm hover:underline cursor-pointer"
+            className="text-brand-600 text-sm hover:underline cursor-pointer"
           >
             ← Go back
           </button>
@@ -120,27 +120,27 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white max-w-xl mx-auto border-x border-gray-100">
+    <div className="min-h-screen bg-white max-w-xl mx-auto border-x border-stone-100">
       {/* Back nav */}
-      <div className="flex items-center gap-4 px-4 py-3 border-b border-gray-100 sticky top-0 bg-white/90 backdrop-blur z-10">
+      <div className="flex items-center gap-4 px-4 py-3 border-b border-stone-100 sticky top-0 bg-white/90 backdrop-blur z-10">
         <button
           onClick={() => navigate(-1)}
-          className="text-gray-600 hover:text-gray-900 cursor-pointer"
+          className="text-stone-600 hover:text-stone-900 cursor-pointer"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
         <div>
-          <p className="font-bold text-gray-900 text-sm">
+          <p className="font-bold text-stone-900 text-sm">
             {profile.displayName ?? profile.username}
           </p>
-          <p className="text-gray-400 text-xs">{profile.postCount} posts</p>
+          <p className="text-stone-400 text-xs">{profile.postCount} posts</p>
         </div>
       </div>
 
       {/* Banner */}
-      <div className="h-36 bg-gradient-to-r from-indigo-100 to-purple-100">
+      <div className="h-36 bg-gradient-to-r from-brand-100 to-purple-100">
         {profile.bannerImageUrl && (
           <img
             src={profile.bannerImageUrl}
@@ -154,11 +154,11 @@ export default function ProfilePage() {
       <div className="px-4 pb-4">
         <div className="flex justify-between items-start -mt-10 mb-3">
           {/* Avatar */}
-          <div className="w-20 h-20 rounded-full border-4 border-white bg-indigo-100 flex items-center justify-center overflow-hidden">
+          <div className="w-20 h-20 rounded-full border-4 border-white bg-brand-100 flex items-center justify-center overflow-hidden">
             {profile.profilePictureUrl ? (
               <img src={profile.profilePictureUrl} alt="" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-indigo-600 font-bold text-2xl">
+              <span className="text-brand-600 font-bold text-2xl">
                 {(profile.displayName ?? profile.username).charAt(0).toUpperCase()}
               </span>
             )}
@@ -168,7 +168,7 @@ export default function ProfilePage() {
           {isOwnProfile ? (
             <button
               onClick={() => setShowEditModal(true)}
-              className="mt-12 border border-gray-300 hover:border-gray-400 text-gray-700 font-medium px-4 py-1.5 rounded-full text-sm transition cursor-pointer"
+              className="mt-12 border border-stone-300 hover:border-stone-400 text-stone-700 font-medium px-4 py-1.5 rounded-full text-sm transition cursor-pointer"
             >
               Edit profile
             </button>
@@ -178,8 +178,8 @@ export default function ProfilePage() {
               disabled={followBusy}
               className={`mt-12 font-medium px-4 py-1.5 rounded-full text-sm transition cursor-pointer disabled:opacity-60 ${
                 profile.followedByViewer
-                  ? 'border border-gray-300 hover:border-red-300 hover:text-red-500 text-gray-700'
-                  : 'bg-gray-900 hover:bg-gray-700 text-white'
+                  ? 'border border-stone-300 hover:border-red-300 hover:text-red-500 text-stone-700'
+                  : 'bg-stone-900 hover:bg-stone-700 text-white'
               }`}
             >
               {followBusy ? '…' : profile.followedByViewer ? 'Following' : 'Follow'}
@@ -189,19 +189,19 @@ export default function ProfilePage() {
 
         {/* Name & handle */}
         <div className="mb-2">
-          <p className="font-bold text-gray-900 text-lg leading-tight">
+          <p className="font-bold text-stone-900 text-lg leading-tight">
             {profile.displayName ?? profile.username}
           </p>
-          <p className="text-gray-400 text-sm">@{profile.username}</p>
+          <p className="text-stone-400 text-sm">@{profile.username}</p>
         </div>
 
         {/* Bio */}
         {profile.bio && (
-          <p className="text-gray-700 text-sm mb-2 leading-relaxed">{profile.bio}</p>
+          <p className="text-stone-700 text-sm mb-2 leading-relaxed">{profile.bio}</p>
         )}
 
         {/* Joined date */}
-        <p className="text-gray-400 text-xs mb-3">
+        <p className="text-stone-400 text-xs mb-3">
           Joined {formatFullDate(profile.createdAt)}
         </p>
 
@@ -213,15 +213,15 @@ export default function ProfilePage() {
       </div>
 
       {/* Posts tab header */}
-      <div className="border-b border-gray-100">
-        <div className="px-4 py-3 border-b-2 border-indigo-600 inline-block">
-          <span className="font-medium text-gray-900 text-sm">Posts</span>
+      <div className="border-b border-stone-100">
+        <div className="px-4 py-3 border-b-2 border-brand-600 inline-block">
+          <span className="font-medium text-stone-900 text-sm">Posts</span>
         </div>
       </div>
 
       {/* Posts list */}
       {postsPage && postsPage.items.length === 0 ? (
-        <div className="text-center py-16 text-gray-400 text-sm">No posts yet.</div>
+        <div className="text-center py-16 text-stone-400 text-sm">No posts yet.</div>
       ) : (
         <>
           {postsPage?.items.map(post => (

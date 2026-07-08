@@ -56,7 +56,10 @@ public class AuthService {
                 .role(UserRole.USER)
                 .build();
 
-        User saved = userRepository.save(user);
+        // saveAndFlush: @CreationTimestamp is populated at flush time, not persist() time —
+        // AuthResponse.user.createdAt (built from `saved` a few lines down) would be null
+        // without an immediate flush here.
+        User saved = userRepository.saveAndFlush(user);
         log.info("New user registered: id={}, username={}", saved.getId(), saved.getUsername());
 
         // Send verification email asynchronously (won't block the response)

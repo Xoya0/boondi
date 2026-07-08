@@ -6,6 +6,12 @@ import retrofit2.HttpException
 import java.io.IOException
 
 /**
+ * Shared so the UI (ErrorState) can recognize connectivity failures and render the
+ * dedicated offline treatment instead of a generic error.
+ */
+const val NETWORK_ERROR_MESSAGE = "You're offline — check your connection"
+
+/**
  * Result of a repository call. UI layers switch on this instead of catching exceptions.
  */
 sealed interface ApiResult<out T> {
@@ -37,7 +43,7 @@ suspend fun <T : Any> safeApiCall(
 } catch (e: HttpException) {
     parseHttpError(moshi, e)
 } catch (e: IOException) {
-    ApiResult.Error("Network error — check your connection")
+    ApiResult.Error(NETWORK_ERROR_MESSAGE)
 } catch (e: Exception) {
     ApiResult.Error(e.message ?: "Something went wrong")
 }
@@ -60,7 +66,7 @@ suspend fun <T> safeApiCallUnit(
 } catch (e: HttpException) {
     parseHttpError(moshi, e)
 } catch (e: IOException) {
-    ApiResult.Error("Network error — check your connection")
+    ApiResult.Error(NETWORK_ERROR_MESSAGE)
 } catch (e: Exception) {
     ApiResult.Error(e.message ?: "Something went wrong")
 }

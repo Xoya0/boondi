@@ -1,0 +1,108 @@
+version: '3.9'
+
+# Production stack. Differences from docker-compose.yml (dev):
+#   - postgres/redis/minio have NO host port mappings — only reachable inside the compose
+#     network, not from the internet.
+#   - No mailhog — MAIL_HOST/MAIL_PORT/MAIL_USERNAME/MAIL_PASSWORD must point at a real SMTP
+#     provider.
+#   - Secrets (DB_PASSWORD, JWT_SECRET, MinIO creds) have no baked-in defaults: the
+#     `${VAR:?message}` form fails the deploy immediately if you forget to set one, instead
+#     of silently starting with a dev placeholder.
+#   - nginx builds nginx/Dockerfile.prod (bundles the built web app + TLS termination) instead
+#     of just proxying to a directory that's never populated.
+#
+# Usage: create a .env file (gitignored) alongside this file with at least DB_PASSWORD,
+# JWT_SECRET, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MAIL_HOST, CORS_ORIGINS, APP_BASE_URL,
+# then: docker compose -f docker-compose.prod.yml up -d --build
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: boondi
+      POSTGRES_USER: boondi
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env before deploying to production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U boondi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env before deploying to production}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env before deploying to production}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env before deploying to production}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/boondi
+      DB_USERNAME: boondi
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env before deploying to production}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env before deploying to production}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET (>= 256 bits, not the dev placeholder) in .env before deploying to production}
+      MAIL_HOST: ${MAIL_HOST:?Set MAIL_HOST to a real SMTP provider in .env before deploying to production}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env before deploying to production}
+      STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env before deploying to production}
+      # Public URL clients (browser/Android) load images from — must be a real, reachable
+      # HTTPS URL in production, not localhost:9000. Put MinIO behind its own TLS route or a
+      # CDN and point this at it.
+      STORAGE_PUBLIC_URL: ${STORAGE_PUBLIC_URL:?Set STORAGE_PUBLIC_URL to a public HTTPS URL for object storage}
+      CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS to your real web app origin(s) in .env}
+      APP_BASE_URL: ${APP_BASE_URL:?Set APP_BASE_URL to your real domain in .env}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile.prod
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api/v1}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Populate with certbot-issued certs or a self-signed pair — see nginx.prod.conf.
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

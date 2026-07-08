@@ -10,9 +10,11 @@ import com.boondi.infrastructure.security.CustomUserDetailsService.CustomUserDet
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,18 +22,22 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+@Validated
 @RestController
 @RequestMapping("/search")
 @RequiredArgsConstructor
 @Tag(name = "Search", description = "Search users, posts, and hashtags (public)")
 public class SearchController {
 
+    // Queries beyond this length have no legitimate use and only add DB load (ILIKE/tsquery).
+    private static final String MAX_QUERY_LENGTH_MESSAGE = "Search query cannot exceed 100 characters";
+
     private final SearchService searchService;
 
     @GetMapping("/users")
     @Operation(summary = "Search users by username or display name (public)")
     public ResponseEntity<ApiResponse<CursorPage<UserResponse>>> searchUsers(
-            @RequestParam String q,
+            @RequestParam @Size(max = 100, message = MAX_QUERY_LENGTH_MESSAGE) String q,
             @Parameter(description = "Pagination cursor (numeric offset from previous nextCursor)")
             @RequestParam(required = false) String cursor,
             @Parameter(description = "Page size (1–50, default 20)")
@@ -43,7 +49,7 @@ public class SearchController {
     @Operation(summary = "Full-text search over post content (public; viewer flags filled when authenticated)")
     public ResponseEntity<ApiResponse<CursorPage<PostResponse>>> searchPosts(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestParam String q,
+            @RequestParam @Size(max = 100, message = MAX_QUERY_LENGTH_MESSAGE) String q,
             @Parameter(description = "Pagination cursor (numeric offset from previous nextCursor)")
             @RequestParam(required = false) String cursor,
             @Parameter(description = "Page size (1–50, default 20)")
@@ -55,7 +61,7 @@ public class SearchController {
     @GetMapping("/hashtags")
     @Operation(summary = "Search hashtags by prefix (public)")
     public ResponseEntity<ApiResponse<CursorPage<HashtagResponse>>> searchHashtags(
-            @RequestParam String q,
+            @RequestParam @Size(max = 100, message = MAX_QUERY_LENGTH_MESSAGE) String q,
             @Parameter(description = "Pagination cursor (numeric offset from previous nextCursor)")
             @RequestParam(required = false) String cursor,
             @Parameter(description = "Page size (1–50, default 20)")

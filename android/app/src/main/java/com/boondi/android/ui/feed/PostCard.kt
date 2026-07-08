@@ -162,13 +162,13 @@ private fun PostActionBar(
         ActionStat(
             icon = if (post.likedByViewer) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
             count = post.likeCount,
-            tint = if (post.likedByViewer) Color(0xFFEF4444) else null,
+            tint = if (post.likedByViewer) MaterialTheme.colorScheme.secondary else null,
             onClick = { onLikeClick(post) },
         )
         ActionStat(
             icon = if (post.bookmarkedByViewer) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
             count = post.bookmarkCount,
-            tint = if (post.bookmarkedByViewer) Color(0xFF4F46E5) else null,
+            tint = if (post.bookmarkedByViewer) MaterialTheme.colorScheme.primary else null,
             onClick = { onBookmarkClick(post) },
         )
     }

@@ -76,12 +76,15 @@ class ComposePostViewModel @Inject constructor(
     fun onImagePicked(uri: Uri) {
         _state.update { it.copy(imageUri = uri, uploadedImageUrl = null, uploadingImage = true, error = null) }
         viewModelScope.launch {
-            val bytes = withContext(Dispatchers.IO) { readBytes(uri) }
+            // Both are ContentResolver calls (cross-process Binder + provider DB query) —
+            // keep them together off the main thread. getType() alone right as an activity
+            // is resuming from the picker is exactly the kind of main-thread work that can
+            // tip a slow/loaded device into an ANR during that window-focus transition.
+            val (bytes, mime) = withContext(Dispatchers.IO) { readBytes(uri) to context.contentResolver.getType(uri) }
             if (bytes == null) {
                 _state.update { it.copy(imageUri = null, uploadingImage = false, error = "Couldn't read that image") }
                 return@launch
             }
-            val mime = context.contentResolver.getType(uri)
             when (val res = postRepository.uploadImage(bytes, mime, fileName(mime))) {
                 is ApiResult.Success -> _state.update { it.copy(uploadedImageUrl = res.data, uploadingImage = false) }
                 is ApiResult.Error -> _state.update {

@@ -11,6 +11,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
+import software.amazon.awssdk.services.s3.model.PutBucketPolicyRequest;
 
 import java.net.URI;
 
@@ -44,6 +45,7 @@ public class StorageConfig {
                 .build();
 
         ensureBucketExists(client);
+        ensurePublicReadPolicy(client);
         return client;
     }
 
@@ -56,6 +58,36 @@ public class StorageConfig {
             log.info("Created storage bucket '{}'", bucket);
         } catch (Exception e) {
             log.warn("Could not verify/create storage bucket '{}': {}", bucket, e.getMessage());
+        }
+    }
+
+    // MinIO buckets are private by default — without this, every avatar/banner/post-image
+    // URL we hand back to clients (UploadResponse.url / app.storage.public-url) 403s for
+    // every caller (web browser included, not just the Android emulator). Idempotent, so
+    // it's safe/cheap to re-apply on every startup — also fixes buckets created before this
+    // policy existed.
+    private void ensurePublicReadPolicy(S3Client client) {
+        try {
+            String policy = """
+                    {
+                      "Version": "2012-10-17",
+                      "Statement": [
+                        {
+                          "Effect": "Allow",
+                          "Principal": "*",
+                          "Action": ["s3:GetObject"],
+                          "Resource": ["arn:aws:s3:::%s/*"]
+                        }
+                      ]
+                    }
+                    """.formatted(bucket);
+            client.putBucketPolicy(PutBucketPolicyRequest.builder()
+                    .bucket(bucket)
+                    .policy(policy)
+                    .build());
+            log.info("Public-read policy applied to storage bucket '{}'", bucket);
+        } catch (Exception e) {
+            log.warn("Could not apply public-read policy to storage bucket '{}': {}", bucket, e.getMessage());
         }
     }
 }

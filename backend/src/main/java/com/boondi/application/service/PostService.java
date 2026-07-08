@@ -14,6 +14,7 @@ import com.boondi.domain.repository.PostHashtagRepository;
 import com.boondi.domain.repository.PostRepository;
 import com.boondi.domain.repository.UserRepository;
 import com.boondi.infrastructure.exception.BoondiException;
+import com.boondi.infrastructure.service.ImageContentValidator;
 import com.boondi.infrastructure.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +50,7 @@ public class PostService {
     private final NotificationService notificationService;
     private final HashtagRepository hashtagRepository;
     private final PostHashtagRepository postHashtagRepository;
+    private final ImageContentValidator imageContentValidator;
 
     @Transactional
     public PostResponse createPost(UUID authorId, CreatePostRequest request) {
@@ -83,7 +85,10 @@ public class PostService {
                 .quotedPost(quotedPost)
                 .build();
 
-        Post saved = postRepository.save(post);
+        // saveAndFlush (not save): @CreationTimestamp/@UpdateTimestamp are populated by
+        // Hibernate at flush time, not at persist() time — without an immediate flush here,
+        // the response mapped below would carry null createdAt/updatedAt.
+        Post saved = postRepository.saveAndFlush(post);
 
         author.setPostCount(author.getPostCount() + 1);
         userRepository.save(author);
@@ -160,7 +165,7 @@ public class PostService {
         post.setEdited(true);
         post.setEditedAt(OffsetDateTime.now());
 
-        Post saved = postRepository.save(post);
+        Post saved = postRepository.saveAndFlush(post);
         log.info("Post updated: postId={}", postId);
         return postMapper.toResponse(saved);
     }
@@ -244,7 +249,8 @@ public class PostService {
             throw BoondiException.fileUploadFailed("No file provided");
         }
         String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
+        if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)
+                || !imageContentValidator.matches(file, contentType)) {
             throw BoondiException.invalidFileType();
         }
         if (file.getSize() > MAX_POST_IMAGE_SIZE) {

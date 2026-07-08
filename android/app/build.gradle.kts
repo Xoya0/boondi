@@ -81,4 +81,7 @@ dependencies {
 
     // Image loading
     implementation(libs.coil.compose)
+
+    // Android 12+ splash screen, back-ported to minSdk (E10-10)
+    implementation(libs.androidx.core.splashscreen)
 }

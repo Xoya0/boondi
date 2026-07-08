@@ -1,0 +1,16 @@
+# Build context is the repo root (see docker-compose.prod.yml) so this stage can reach web/.
+FROM node:20-alpine AS web-builder
+WORKDIR /web
+# Relative path (default): the browser calls same-origin /api/v1/..., which this same nginx
+# container reverse-proxies to the backend — no CORS involved for the web app itself.
+# Override only if the web app is ever served from a different origin than the API.
+ARG VITE_API_URL=/api/v1
+ENV VITE_API_URL=$VITE_API_URL
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+COPY web/ ./
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=web-builder /web/dist /usr/share/nginx/html
+COPY nginx/nginx.prod.conf /etc/nginx/nginx.conf

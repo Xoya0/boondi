@@ -1,8 +1,14 @@
 package com.boondi.android.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -56,7 +62,21 @@ fun BoondiApp(
 ) {
     val authState by mainViewModel.authState.collectAsStateWithLifecycle()
 
-    val startDestination = if (authState is AuthState.Authenticated) Routes.HOME else Routes.LOGIN
+    // Session restore happens off the main thread (see SessionManager), so the first
+    // composition(s) see Loading — hold a splash until it resolves rather than guessing
+    // a start destination.
+    if (authState is AuthState.Loading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    // Frozen at the first resolved value: NavHost treats a changed startDestination as a
+    // new graph; later auth flips are handled by the LaunchedEffect below instead.
+    val startDestination = remember {
+        if (authState is AuthState.Authenticated) Routes.HOME else Routes.LOGIN
+    }
 
     LaunchedEffect(authState) {
         val current = navController.currentDestination?.route

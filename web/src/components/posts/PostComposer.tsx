@@ -83,10 +83,10 @@ export default function PostComposer({
   const initials = (user?.displayName ?? user?.username ?? '?').charAt(0).toUpperCase()
 
   return (
-    <form onSubmit={handleSubmit} className="border-b border-gray-100 px-4 py-3">
+    <form onSubmit={handleSubmit} className="border-b border-stone-100 px-4 py-3">
       <div className="flex gap-3">
         {/* Avatar */}
-        <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
           {user?.profilePictureUrl ? (
             <img
               src={user.profilePictureUrl}
@@ -94,7 +94,7 @@ export default function PostComposer({
               className="w-10 h-10 rounded-full object-cover"
             />
           ) : (
-            <span className="text-indigo-600 font-semibold text-sm">{initials}</span>
+            <span className="text-brand-600 font-semibold text-sm">{initials}</span>
           )}
         </div>
 
@@ -105,7 +105,7 @@ export default function PostComposer({
             onChange={e => setContent(e.target.value)}
             placeholder={placeholder}
             rows={3}
-            className="w-full resize-none text-gray-800 text-sm placeholder-gray-400 border-none outline-none bg-transparent leading-relaxed"
+            className="w-full resize-none text-stone-800 text-sm placeholder-stone-400 border-none outline-none bg-transparent leading-relaxed"
           />
 
           {/* Quoted post preview */}
@@ -121,7 +121,7 @@ export default function PostComposer({
               <img
                 src={imagePreview}
                 alt="Preview"
-                className="max-h-48 rounded-xl object-cover border border-gray-200"
+                className="max-h-48 rounded-xl object-cover border border-stone-200"
               />
               <button
                 type="button"
@@ -137,13 +137,13 @@ export default function PostComposer({
           {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
 
           {/* Footer */}
-          <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-stone-100">
             <div className="flex items-center gap-2">
               {/* Image attach button */}
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="text-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                className="text-brand-400 hover:text-brand-600 transition-colors cursor-pointer"
                 title="Attach image"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,7 +163,7 @@ export default function PostComposer({
             <div className="flex items-center gap-3">
               {/* Character counter */}
               <span className={`text-xs tabular-nums ${
-                isOver ? 'text-red-500 font-medium' : remaining <= 50 ? 'text-amber-500' : 'text-gray-400'
+                isOver ? 'text-red-500 font-medium' : remaining <= 50 ? 'text-amber-500' : 'text-stone-400'
               }`}>
                 {remaining}
               </span>
@@ -172,7 +172,7 @@ export default function PostComposer({
               <button
                 type="submit"
                 disabled={isEmpty || isOver || submitting}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-medium px-4 py-1.5 rounded-full text-sm transition cursor-pointer disabled:cursor-not-allowed"
+                className="bg-brand-600 hover:bg-brand-700 disabled:bg-brand-300 text-white font-medium px-4 py-1.5 rounded-full text-sm transition cursor-pointer disabled:cursor-not-allowed"
               >
                 {uploading ? 'Uploading…' : submitting ? 'Posting…' : 'Post'}
               </button>

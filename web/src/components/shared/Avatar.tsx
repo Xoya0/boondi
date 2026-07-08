@@ -13,13 +13,13 @@ export default function Avatar({ src, alt, size = 'md' }: AvatarProps) {
       <img
         src={src}
         alt={alt}
-        className={`${sizeClasses} rounded-full object-cover bg-gray-200 flex-shrink-0`}
+        className={`${sizeClasses} rounded-full object-cover bg-stone-200 flex-shrink-0`}
       />
     )
   }
   return (
-    <div className={`${sizeClasses} rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0`}>
-      <span className="text-indigo-600 font-semibold">{alt.charAt(0).toUpperCase()}</span>
+    <div className={`${sizeClasses} rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0`}>
+      <span className="text-brand-600 font-semibold">{alt.charAt(0).toUpperCase()}</span>
     </div>
   )
 }

@@ -17,19 +17,35 @@ import javax.inject.Singleton
  * Secure, persistent storage for auth tokens + the signed-in user (E2-14). Backed by
  * [EncryptedSharedPreferences] (AES-256), so tokens are encrypted at rest. Reads are
  * synchronous so the OkHttp auth interceptor/authenticator can use them on any thread.
+ *
+ * Initialization is deferred ([lazy]): creating the Keystore master key and decrypting the
+ * pref file can block for seconds (much longer on emulators), so it must never happen on
+ * the main thread — [SessionManager] triggers the first read from a background coroutine.
  */
 @Singleton
 class TokenStorage @Inject constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
     moshi: Moshi,
 ) {
     private val userAdapter = moshi.adapter(UserDto::class.java)
 
-    private val prefs: SharedPreferences = run {
+    private val prefs: SharedPreferences by lazy {
+        try {
+            createEncryptedPrefs()
+        } catch (_: Exception) {
+            // A corrupted pref file / Keystore key otherwise throws on every launch and
+            // bricks the app. Dropping the stored session (user just signs in again) beats
+            // an app that never opens.
+            context.deleteSharedPreferences(PREFS_NAME)
+            createEncryptedPrefs()
+        }
+    }
+
+    private fun createEncryptedPrefs(): SharedPreferences {
         val masterKey = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
-        EncryptedSharedPreferences.create(
+        return EncryptedSharedPreferences.create(
             context,
             PREFS_NAME,
             masterKey,

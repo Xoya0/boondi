@@ -124,7 +124,7 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
   }
 
   return (
-    <article className="flex gap-3 px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+    <article className="flex gap-3 px-4 py-3 border-b border-stone-100 hover:bg-stone-50 transition-colors">
       {/* Avatar */}
       <Link to={`/profile/${post.author.username}`} className="flex-shrink-0">
         <Avatar
@@ -140,29 +140,29 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
         <div className="flex items-center gap-2 flex-wrap">
           <Link
             to={`/profile/${post.author.username}`}
-            className="font-semibold text-gray-900 text-sm hover:underline"
+            className="font-semibold text-stone-900 text-sm hover:underline"
           >
             {post.author.displayName ?? post.author.username}
           </Link>
           <Link
             to={`/profile/${post.author.username}`}
-            className="text-gray-400 text-sm"
+            className="text-stone-400 text-sm"
           >
             @{post.author.username}
           </Link>
-          <span className="text-gray-300 text-xs">·</span>
-          <span className="text-gray-400 text-xs" title={new Date(post.createdAt).toLocaleString()}>
+          <span className="text-stone-300 text-xs">·</span>
+          <span className="text-stone-400 text-xs" title={new Date(post.createdAt).toLocaleString()}>
             {formatRelativeTime(post.createdAt)}
           </span>
           {post.edited && (
-            <span className="text-gray-300 text-xs">(edited)</span>
+            <span className="text-stone-300 text-xs">(edited)</span>
           )}
         </div>
 
         {/* Content */}
         <p
           onClick={openDetail}
-          className={`text-gray-800 text-sm mt-1 whitespace-pre-wrap break-words leading-relaxed ${
+          className={`text-stone-800 text-sm mt-1 whitespace-pre-wrap break-words leading-relaxed ${
             linkToDetail ? 'cursor-pointer' : ''
           }`}
         >
@@ -174,7 +174,7 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
           <img
             src={post.imageUrl}
             alt="Post image"
-            className="mt-2 rounded-xl max-h-80 object-cover border border-gray-100"
+            className="mt-2 rounded-xl max-h-80 object-cover border border-stone-100"
           />
         )}
 
@@ -196,7 +196,7 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
           {/* Reply — opens the post detail page */}
           <button
             onClick={openDetail}
-            className="flex items-center gap-1.5 text-gray-400 hover:text-indigo-500 text-xs transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 text-stone-400 hover:text-brand-500 text-xs transition-colors cursor-pointer"
             title="Reply"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -212,7 +212,7 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
               onClick={handleRepostButtonClick}
               disabled={busy}
               className={`flex items-center gap-1.5 text-xs transition-colors cursor-pointer disabled:opacity-60 ${
-                post.repostedByViewer ? 'text-green-600' : 'text-gray-400 hover:text-green-500'
+                post.repostedByViewer ? 'text-green-600' : 'text-stone-400 hover:text-green-500'
               }`}
               title={post.repostedByViewer ? 'Undo repost' : 'Repost or quote'}
             >
@@ -224,16 +224,16 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
             </button>
 
             {repostMenuOpen && (
-              <div className="absolute bottom-full left-0 mb-1 w-36 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-20">
+              <div className="absolute bottom-full left-0 mb-1 w-36 bg-white border border-stone-200 rounded-xl shadow-lg py-1 z-20">
                 <button
                   onClick={handleRepost}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
+                  className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 cursor-pointer"
                 >
                   Repost
                 </button>
                 <button
                   onClick={handleQuote}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
+                  className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 cursor-pointer"
                 >
                   Quote
                 </button>
@@ -246,7 +246,7 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
             onClick={toggleLike}
             disabled={busy}
             className={`flex items-center gap-1.5 text-xs transition-colors cursor-pointer disabled:opacity-60 ${
-              post.likedByViewer ? 'text-red-500' : 'text-gray-400 hover:text-red-500'
+              post.likedByViewer ? 'text-rose-500' : 'text-stone-400 hover:text-rose-500'
             }`}
             title={post.likedByViewer ? 'Unlike' : 'Like'}
           >
@@ -267,7 +267,7 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
             onClick={toggleBookmark}
             disabled={busy}
             className={`flex items-center gap-1.5 text-xs transition-colors cursor-pointer disabled:opacity-60 ${
-              post.bookmarkedByViewer ? 'text-indigo-600' : 'text-gray-400 hover:text-indigo-500'
+              post.bookmarkedByViewer ? 'text-brand-600' : 'text-stone-400 hover:text-brand-500'
             }`}
             title={post.bookmarkedByViewer ? 'Remove bookmark' : 'Bookmark'}
           >
@@ -287,7 +287,7 @@ export default function PostCard({ post: initialPost, onDeleted, linkToDetail = 
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="ml-auto text-gray-300 hover:text-red-400 text-xs transition-colors cursor-pointer disabled:opacity-50"
+              className="ml-auto text-stone-300 hover:text-red-400 text-xs transition-colors cursor-pointer disabled:opacity-50"
               title="Delete post"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

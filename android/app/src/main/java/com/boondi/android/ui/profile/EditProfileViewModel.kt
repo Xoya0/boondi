@@ -99,14 +99,15 @@ class EditProfileViewModel @Inject constructor(
 
     /** Uploads a picked image; returns the URL on success, null on failure. */
     private suspend fun uploadImage(uri: Uri, isAvatar: Boolean): String? {
-        val bytes = withContext(Dispatchers.IO) {
-            try {
+        val (bytes, mime) = withContext(Dispatchers.IO) {
+            val b = try {
                 context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
             } catch (_: Exception) {
                 null
             }
-        } ?: return null
-        val mime = context.contentResolver.getType(uri)
+            b to context.contentResolver.getType(uri)
+        }
+        if (bytes == null) return null
         val name = "${if (isAvatar) "avatar" else "banner"}_${System.currentTimeMillis()}"
         val res = if (isAvatar) {
             userRepository.uploadAvatar(bytes, mime, name)

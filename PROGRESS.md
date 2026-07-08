@@ -1,7 +1,7 @@
 # Boondi — Project Progress & Session Memory
 
 > **Purpose:** Read this file FIRST in every new session before doing any work.
-> **Last updated:** 2026-07-07 | Sprint 9 complete — next is Sprint 10
+> **Last updated:** 2026-07-08 | Sprint 10 complete — all 10 sprints of the plan done
 
 ---
 
@@ -14,8 +14,11 @@ The backend had **never actually been booted end-to-end** before 2026-07-07 (eve
 3. **Systemic Postgres/pgjdbc bug in every cursor-paginated query**: the `(:cursor IS NULL OR x.field < :cursor)` JPQL pattern — used identically across **10 query methods in 5 repositories** (`PostRepository` ×5: latest/home/user timelines, replies, bookmarks; `FollowRepository` ×2: followers/following; `NotificationRepository`; `ReportRepository`; `UserRepository.findAllForAdmin`) — fails with `ERROR: could not determine data type of parameter $N` on Postgres whenever `cursor` is null (i.e. **every first-page load**, which is every feed/list screen on first open). This is why the Android app's Home feed showed a 500 and newly-created posts appeared to "vanish" — they were saved fine; the feed query just couldn't run. **Fixed by casting explicitly: `(cast(:cursor as timestamp) IS NULL OR x.field < :cursor)`** in all 10 places. Verified empirically against the live container (home timeline, user timeline, notifications, bookmarks, followers, following, admin users list all return 200 now). **If you add a new cursor-paginated query, use this cast pattern from the start — the bare `:cursor IS NULL` form will pass compilation and code review but fail at runtime on Postgres.**
 4. **`SecurityConfig` never configured a custom `AuthenticationEntryPoint`**, so Spring Security's fallback for a stateless config with no `httpBasic()`/`formLogin()` is `Http403ForbiddenEntryPoint` — every missing/expired/invalid JWT got a **403**, not 401. Since the Android `TokenAuthenticator` (Sprint 8's E2-14 refresh flow) — and any correct OkHttp/Retrofit client — only ever triggers a refresh attempt on a **401**, this meant **the token-refresh feature could never actually fire**; an expired access token (15-min TTL) just failed forever with a generic "you don't have permission" error instead of silently refreshing. Fixed by adding an `AuthenticationEntryPoint` bean (in `SecurityConfig`) that returns a proper 401 + `ApiResponse` JSON body for unauthenticated access; the existing `@PreAuthorize`/`AccessDeniedException` → 403 path (admin RBAC) is untouched and still correctly returns 403. Verified empirically: no-token → 401, garbage-token → 401, valid-token-wrong-role → 403, valid-token-correct-role → 200.
 5. **Image URLs are unreachable from the Android emulator** — `app.storage.public-url` defaults to `http://localhost:9000` (correct for the web app's browser, which runs on the host), but inside the emulator "localhost" means the emulator itself, not the host machine (same class of issue `10.0.2.2` solves for the API, but this is a *different* mechanism since the URL is embedded in API response bodies, not the API host itself). Workaround (not a code fix): `adb reverse tcp:9000 tcp:9000` forwards the emulator's own port 9000 to the host's MinIO. **This does not persist across emulator restarts — re-run it each session**, or wire it into a Gradle task if it becomes a recurring annoyance. As of this session, images still weren't confirmed rendering after this workaround (possibly needs a full app restart / Coil cache clear) — unresolved, deprioritized by the user.
+6. **`@CreationTimestamp`/`@UpdateTimestamp` fields came back `null` in create-response bodies.** Hibernate populates these fields at *flush* time, not at `repository.save()` time — every "create X, then immediately map X to a response" flow (`PostService.createPost`, `PostService.updatePost`, `AuthService.register`, `ReportService.createReport`) was calling `.save()` and mapping the still-unflushed entity, so `createdAt`/`updatedAt` were `null` in the response the client got back (a follow-up GET would show the correct value, since by then the transaction had committed). Concretely: creating a reply showed `createdAt: null` in the immediate response, even though `GET /posts/{id}/replies` right after showed it correctly. **Fixed by switching those four call sites to `saveAndFlush(...)`.** Verified empirically: register, create post, and create report all now return real timestamps immediately. **If a new service creates an entity with `@CreationTimestamp`/`@UpdateTimestamp` and returns it in the same response, use `saveAndFlush`, not `save`.**
 
-All five fixes are in already; `docker compose up -d --build backend` picks them up (fix 5 is a per-session `adb` command, not a code change). No Android/web code changes were needed for fixes 1–4 — all backend.
+All six fixes are in already; `docker compose up -d --build backend` picks them up (fix 5 is a per-session `adb` command, not a code change). No Android/web code changes were needed for fixes 1, 2, 3, 4, 6 — all backend.
+
+**Also verified working end-to-end this session** (via direct API calls against the live backend): like/unlike, repost/unrepost, bookmark/unbookmark (+ bookmarks list), reply creation (+ parent reply-count + replies list), search (users/posts/hashtags), and the full admin flow (file a report → admin views it → admin suspends/unsuspends a user). All correct.
 
 ---
 
@@ -107,7 +110,7 @@ C:\Users\dibya\Documents\Boondi\
 | Sprint 7 | Sep 29–Oct 10, 2026 | Web feature complete + Android init | ✅ COMPLETE |
 | Sprint 8 | Oct 13–24, 2026 | Android core (feed, posts, profiles) | ✅ COMPLETE |
 | Sprint 9 | Oct 27–Nov 7, 2026 | Android social + notifications + Admin panel | ✅ COMPLETE |
-| Sprint 10 | Nov 10–20, 2026 | Polish, tests, security, production deploy | ⏳ Pending |
+| Sprint 10 | Nov 10–20, 2026 | Polish, tests, security, production deploy | ✅ COMPLETE |
 
 ---
 
@@ -522,7 +525,7 @@ Web:    http://localhost:5173 (Vite dev server)
 | Epic 7 | Notifications | 20 | 20 | 0 (Android E7-08/09 done Sprint 9) |
 | Epic 8 | Search | 23 | 23 | 0 (Android E8-08 done Sprint 9) |
 | Epic 9 | Admin | 16 | 16 | 0 (done Sprint 9) |
-| Epic 10 | Polish/Testing/Launch | 50 | 0 | 50 (Sprint 10) |
+| Epic 10 | Polish/Testing/Launch | 50 | 50 | 0 |
 
 ---
 
@@ -576,6 +579,100 @@ Web:    http://localhost:5173 (Vite dev server)
 
 ---
 
+## Sprint 10 — COMPLETE ✅
+
+**Sprint Goal (per Sprint-and-Release-Plan.md §6, Sprint 10):** Cross-cutting hardening — testing, security, performance, production deploy. No new features. Final sprint before `v1.0.0`.
+
+| ID | Story | Status |
+|----|-------|--------|
+| E10-01 | Backend: Global exception handler audit | ✅ |
+| E10-02 | Backend: Input validation audit on request DTOs | ✅ |
+| — | Backend: Admin role seeding mechanism (flagged gap from Sprint 9) | ✅ |
+| E10-03 | Backend: Rate limiting (Bucket4j) | ✅ |
+| E10-04 | Backend: Unit tests (JUnit5 + Mockito) | ✅ |
+| E10-05 | Backend: Integration tests (TestContainers) | ✅ |
+| E10-06 | Web: Error boundaries + empty states | ✅ |
+| E10-07 | Web: Loading skeletons | ✅ |
+| E10-08 | Web: Dark mode | ✅ |
+| E10-09 | Android: Offline/error states | ✅ |
+| E10-10 | Android: App icon + splash screen | ✅ |
+| E10-11 | Performance audit (Redis/query/indices review) | ✅ |
+| E10-12 | Security review, OWASP Top 10 | ✅ |
+| E10-13 | Production deploy config + Nginx SSL | ✅ |
+| E10-14 | Swagger completion | ✅ (already complete from prior sprints — every endpoint had `@Operation`, global bearer auth scheme was already configured; no changes needed) |
+| E10-15 | Beta bug-fix buffer | ✅ (absorbed into the exception-handler/validation/upload-validation fixes below — no separate buffer work needed) |
+
+### E10-01/02 — Exception handling + input validation
+
+- `GlobalExceptionHandler` gained 7 handlers ahead of the generic 500 fallback: malformed JSON body (400), type-mismatch path/query params (400), missing required query params (400), `ConstraintViolationException` from `@Validated` controller-level params (400, with a per-field violations map), unsupported HTTP method (405), unmatched route (404), oversized upload (413 `FILE_TOO_LARGE`). Previously all of these fell through to a generic 500.
+- New `ErrorCode`s: `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `RATE_LIMITED`.
+- `CreatePostRequest`/`UpdatePostRequest.imageUrl` capped at 1000 chars; `SearchController`'s three `q` params capped at 100 chars (class-level `@Validated` + `ConstraintViolationException` handler above).
+
+### Admin seeding (flagged gap from Sprint 9)
+
+- New `AdminSeedConfig` (`ApplicationRunner`): reads `app.admin.emails` (comma-separated, `ADMIN_EMAILS` env var), promotes each matching registered user to `ADMIN` at startup. Idempotent, logs a warning for unknown emails, deliberately does **not** auto-demote (so removing an email from the list doesn't silently strip an admin who was promoted a different way). This was the only way to reach Epic 9's admin panel/APIs before this sprint (previously required a manual `psql` `UPDATE`).
+
+### E10-03 — Rate limiting (Bucket4j)
+
+- New `RateLimitFilter` (`OncePerRequestFilter`, in-memory token buckets keyed by client IP): 10 req/min on `/auth/**`, 300 req/min on everything else. Reads the first entry of `X-Forwarded-For` when present (so it works correctly behind the production Nginx). Bucket map is capped at 50k tracked IPs with a hard `clear()` on overflow (simple bound, acceptable for MVP scale — a real deployment under sustained attack would want Redis-backed buckets instead of per-instance memory, noted as a future improvement, not done here since it's beyond MVP scope). Returns 429 + `ApiResponse` body with `RATE_LIMITED`.
+
+### E10-04/05 — Test suites
+
+- **59 backend tests, all passing**: 43 unit tests (`AuthServiceTest`, `PostServiceTest`, `InteractionServiceTest`, `ReportServiceTest`, `RateLimitFilterTest`) + 11 `TestContainers` integration tests (`BackendIntegrationTest`, real Postgres 16 + Redis 7 containers) + 5 pre-existing `AuthControllerTest` tests (fixed a shared-container test-isolation bug found in the process — two tests were registering the same username into one class-level container).
+- **TestContainers 1.x is incompatible with Docker Engine 29+** (pins API version 1.32; the engine's minimum is 1.44) — fixed only in 2.0.2+. Upgraded to 2.0.5; artifact IDs changed (`postgresql`→`testcontainers-postgresql`, `junit-jupiter`→`testcontainers-junit-jupiter`), Java package names unchanged.
+- Integration tests deliberately encode regressions found in the Sprint 9 first-ever-live-run session: the pgjdbc null-cursor cast bug, 401-vs-403 `AuthenticationEntryPoint` behavior, `saveAndFlush` timestamp population, soft-deleted-post interaction guard, auth-endpoint rate-limit burst.
+- **Always run Maven with `JAVA_HOME` pointed at JDK 21** (same rule as Gradle) — Mockito/ByteBuddy fail to start under the system JDK 25.
+
+### E10-06/07/08 — Web polish
+
+- `ErrorBoundary` (class component) wraps the router; full-screen fallback + reload button.
+- `PostCardSkeleton`/`PostListSkeleton` (`animate-pulse`) replace the loading spinner on `HomePage` and `BookmarksPage`.
+- Dark mode: single `.dark` class on `<html>`, one CSS block in `index.css` mapping every light-palette utility class to a dark value (`theme.ts` handles system-preference detection + `localStorage` persistence + a toggle button) — chosen over per-component `dark:` variants to avoid touching every component.
+
+### E10-09/10 — Android polish
+
+- `ApiResult`'s network-failure path now surfaces a friendly `"You're offline — check your connection"` message (`NETWORK_ERROR_MESSAGE` constant); `ErrorState` renders a `CloudOff` icon specifically for that message instead of the generic error icon.
+- Real app icon (indigo `#4F46E5` background + white droplet vector — "boondi" is a droplet-shaped sweet) replacing the default Compose placeholder; `androidx.core.splashscreen` 1.0.1 wired into `MainActivity` — `installSplashScreen().setKeepOnScreenCondition { mainViewModel.authState.value is AuthState.Loading }` holds the system splash until the stored session resolves, so the first real frame is already the correct screen instead of a loading spinner.
+- Verified via `compileDebugKotlin`/`kspDebugKotlin` (BUILD SUCCESSFUL) — **`assembleDebug`/`installDebug` still not run this session** (deferred; see Android build note below).
+
+### E10-11/12 — Performance + security audit (OWASP Top 10)
+
+Findings, all fixed:
+
+1. **Multipart size limits mismatched the app's own validation.** Spring Boot's defaults (1MB max-file-size / 10MB max-request-size) are *below* `UserService`'s 10MB banner cap — uploads between 1MB and the app's intended limit were silently rejected with a generic 413 before the app's own size check (and its friendlier error message) ever ran. Fixed by setting `spring.servlet.multipart.max-file-size`/`max-request-size` to 10MB in `application.yml`.
+2. **Image upload validation only trusted the client-supplied `Content-Type` header.** A caller could label arbitrary bytes `image/jpeg` and have them stored and served back from MinIO under that trusted content type (the exact value is forwarded straight to S3's `PutObject`). Added `ImageContentValidator` (checks real magic bytes for JPEG/PNG/WEBP against the claimed type) and wired it into both `PostService.validatePostImage` and `UserService.validateImage`.
+3. **JWT secret had no production safety net.** The dev placeholder (`...-change-in-production-must-be-at-least-256-bits-long`) would sign real tokens if `JWT_SECRET` were forgotten in a prod deploy. `JwtTokenProvider`'s constructor now fails fast (`IllegalStateException` at startup) if the `prod` profile is active and the secret still contains the `"change-in-production"` sentinel.
+4. **`/actuator/health` leaked component internals publicly.** `show-details: always` + the endpoint being `permitAll()` (health checks can't require auth, and there's no separate management port) meant anyone could see DB/Redis connectivity and disk-space details. The app's own `HealthController` at `/health` is what Docker/Nginx actually probe — actuator's health only needs to exist for completeness. Changed to `show-details: never`.
+5. **Backend Docker image ran as root.** Added a non-root `boondi` user in the runtime stage of `backend/Dockerfile` (`USER boondi` after the jar is copied in).
+6. **CORS/JWT/RBAC/refresh-token design were already solid** — verified rather than changed: refresh-token rotation + Redis storage, access-token blacklisting on logout (`TokenService`/`JwtAuthenticationFilter`), password-reset tokens are SHA-256-hashed at rest with 1h expiry and anti-enumeration (`sendPasswordResetEmail` always returns success), `BCryptPasswordEncoder(12)`, no wildcard CORS origins, generic exception handler never leaks stack traces to the client, web app has no `dangerouslySetInnerHTML`/`eval` XSS vectors.
+7. **Indices/query performance reviewed** — every hot foreign key (`posts.author_id`, both `follows` directions, `post_likes/reposts/bookmarks.post_id`, `notifications(recipient_id, created_at)`) already has a supporting index from earlier sprints; Redis caching (home timeline, trending hashtags) and the new rate limiter are the two additions since the schema was designed. No further changes needed at MVP scale.
+
+### E10-13 — Production deploy config + Nginx SSL
+
+- **The dev `nginx.conf` never actually served the web app** — no volume/build step ever populated `/usr/share/nginx/html`, so `location /` was always empty in every environment that used it (latent gap, not previously exercised since local dev uses the Vite dev server directly).
+- New `nginx/Dockerfile.prod` (multi-stage: `node:20-alpine` builds `web/` → `nginx:alpine` serves the output) + `nginx/nginx.prod.conf`: HTTP→HTTPS redirect (with an ACME HTTP-01 challenge passthrough for certbot), TLS termination (cert paths bind-mounted from `./nginx/ssl`, TLS 1.2/1.3 only), HSTS/`X-Content-Type-Options`/`X-Frame-Options`/`Referrer-Policy` headers, gzip, long-cache-plus-immutable for hashed `/assets/`, no-cache for `index.html`.
+- Web build defaults to a **relative** `VITE_API_URL=/api/v1` (build-time `ARG` in `Dockerfile.prod`) — since Nginx proxies `/api/` to the backend on the same origin, the browser's own API calls become same-origin and don't need CORS at all in production (CORS config is still needed for any other consumer, and stays configurable via `CORS_ORIGINS`).
+- New `docker-compose.prod.yml`: Postgres/Redis/MinIO have **no host port mappings** (only reachable inside the compose network — dev's `docker-compose.yml` exposes them for local debugging, prod shouldn't); no `mailhog` (real SMTP required via env); every secret (`DB_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`, MinIO creds, `STORAGE_PUBLIC_URL`, `CORS_ORIGINS`, `APP_BASE_URL`) uses the `${VAR:?message}` interpolation form so the deploy fails immediately with a clear message instead of silently starting with a dev placeholder; Redis now requires a password (`--requirepass`) in prod, unlike dev.
+- New `application-prod.yml`: disables `springdoc` Swagger UI/API docs by default in production (reduces public attack-surface discoverability of the full API schema, including admin/report endpoints — re-enable per-deployment via env vars if actually needed), quieter logging (`root: WARN`, `com.boondi: INFO`).
+- **Verified**: `docker build` succeeds for both the updated `backend/Dockerfile` (non-root user) and the new `nginx/Dockerfile.prod` (web app builds and lands in the image with the expected `index.html`/`assets/`/favicon); `docker compose -f docker-compose.prod.yml config` resolves cleanly with dummy secrets (confirms YAML + required-variable interpolation is correct). **Not verified**: an actual end-to-end run of the prod stack (needs a real domain + TLS certs, which this dev environment doesn't have) — the `nginx -t` config-syntax check only fails on `backend` hostname resolution when run standalone outside the compose network, which is expected, not a bug.
+
+### Build verification
+
+- **Backend**: `JAVA_HOME=<jdk21> ./mvnw -q -o compile` clean; full test suite (`./mvnw -q -o test`) — **59/59 passing** (see E10-04/05 above).
+- **Web**: unchanged this sprint from the E10-06/07/08 work — `npx tsc -b` and `npm run build` both clean (verified earlier in the sprint).
+- **Android**: `JAVA_HOME=<jdk21> ./gradlew :app:compileDebugKotlin` — BUILD SUCCESSFUL (verifies E10-09/10 changes + resource merging of the new drawable/theme XML). **`assembleDebug`/`installDebug` still not run** — same open item carried from Sprints 8/9.
+- **Docker**: `docker build` verified for both `backend/Dockerfile` (non-root user change) and the new `nginx/Dockerfile.prod`; `docker compose -f docker-compose.prod.yml config` verified with dummy secrets.
+
+### Carried-over open items (not blockers for this sprint, but flagged for whenever they're picked up)
+
+- **Android `assembleDebug`/`installDebug` has never been run in this dev environment** (Sprints 8, 9, and 10 all verified Android changes via `compileDebugKotlin`/`kspDebugKotlin` only, due to host RAM constraints for the `d8` dexing step). The app *has* been run and smoke-tested via a separately-built APK per the "app is not opening" session earlier in this sprint's timeline (ANR fix + emulator gfxstream blank-screen issue, both resolved) — but that was a snapshot before E10-09/10's icon/splash/offline-state changes landed. Worth a fresh `installDebug` + smoke test (icon, splash, airplane-mode offline state) whenever RAM allows.
+- **Nginx SSL is unexercised end-to-end** — no real domain/certs available in this dev environment. Whoever deploys this needs to: populate `./nginx/ssl/{fullchain.pem,privkey.pem}` (certbot or self-signed for testing), create a `.env` with the required secrets listed in `docker-compose.prod.yml`'s comments, then `docker compose -f docker-compose.prod.yml up -d --build`.
+- **Rate limiting is in-memory, per-instance** — fine for a single-backend-container MVP; would need Redis-backed buckets if the backend is ever horizontally scaled.
+- `v1.0.0` tag not cut yet — ties to this sprint's completion per the release plan, but cutting it is a user action, not something done automatically here.
+- `v0.3.0` (Android private-beta) tag also still not cut — blocked on the `assembleDebug`/`installDebug` item above, carried since Sprint 9.
+
+---
+
 ## Notes for Claude in Future Sessions
 
 1. **Always read this file first** before any code work.
@@ -591,17 +688,15 @@ Web:    http://localhost:5173 (Vite dev server)
 
 ---
 
-## Sprint 10 Preview (next session)
+## v1.0.0 MVP Launch — Next Steps (not automated; user action required)
 
-**Focus (per Sprint-and-Release-Plan.md §6, Sprint 10):** Cross-cutting hardening — testing, security, performance, production deploy. **No new features.** This is the final sprint before `v1.0.0` MVP launch.
+Sprint 10 is the last sprint in the plan. What's left before calling this MVP-launched:
 
-**Committed stories per the plan:** E10-01 (global exception handler — largely done already, just confirm coverage), E10-02 (input validation audit), E10-03 (rate limiting — Bucket4j), E10-04 (backend unit tests, JUnit5+Mockito), E10-05 (backend integration tests, TestContainers), E10-06 (web error boundaries + empty states), E10-07 (web loading skeletons), E10-08 (web dark mode), E10-09 (Android offline/error states), E10-10 (Android app icon + splash), E10-11 (performance audit + Redis tuning), E10-12 (security review, OWASP Top 10), E10-13 (production deploy + Nginx SSL), E10-14 (Swagger completion), E10-15 (beta bug-fix buffer).
-
-**Before starting Sprint 10:**
-- **Get an Android APK actually installed and smoke-tested first.** Three sprints of Android code (8 and 9) have been verified only by `compileDebugKotlin`/`kspDebugKotlin` — never by running the app. This is the highest-risk gap heading into a testing/hardening sprint: run `assembleDebug`/`installDebug` on a machine with free RAM (or Android Studio) and manually walk every flow (auth, feed tabs, post CRUD, interactions, reply, bookmarks, profile edit, notifications+badge, search, admin panel) before writing E10-04/05 tests against behavior that's never been observed running.
-- **No `UserRole.ADMIN` seeding mechanism exists** — there's no Flyway data migration or startup seed that promotes any user to admin, so the admin panel/APIs are currently unreachable without a manual `UPDATE users SET role='ADMIN'` in psql. Sprint 10 doesn't have an explicit story for this, but it's needed to actually test/demo Epic 9 — worth a small addition if not already handled manually.
-- Backend/web are otherwise stable and unchanged in surface area since this sprint — Sprint 10 is testing/polish/deploy, not new endpoints (aside from whatever E10-12's security review surfaces).
+1. **Cut `v1.0.0`** once satisfied with the state above.
+2. **Get an Android APK actually installed and smoke-tested** (carried open item — see Sprint 10's "Carried-over open items" above), then cut `v0.3.0` for Android private-beta.
+3. **Stand up the production stack** on a real host with a real domain: DNS → the host, `.env` with the secrets `docker-compose.prod.yml` requires, TLS certs in `./nginx/ssl/`, then `docker compose -f docker-compose.prod.yml up -d --build`.
+4. Anything beyond this (new features, further epics) would be a new milestone, not part of the Sprint 1–10 plan this file has been tracking.
 
 ---
 
-*Last updated: 2026-07-07 | Sprint 9 complete*
+*Last updated: 2026-07-08 | Sprint 10 complete — all 10 sprints of the plan done*

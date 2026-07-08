@@ -4,6 +4,7 @@ import type { CursorPage, Post } from '../types'
 import { usersApi } from '../api/users'
 import PostCard from '../components/posts/PostCard'
 import InfiniteScrollSentinel from '../components/shared/InfiniteScrollSentinel'
+import { PostListSkeleton } from '../components/shared/PostCardSkeleton'
 
 export default function BookmarksPage() {
   const navigate = useNavigate()
@@ -41,36 +42,32 @@ export default function BookmarksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white max-w-xl mx-auto border-x border-gray-100">
+    <div className="min-h-screen bg-white max-w-xl mx-auto border-x border-stone-100">
       {/* Back nav */}
-      <div className="flex items-center gap-4 px-4 py-3 border-b border-gray-100 sticky top-0 bg-white/90 backdrop-blur z-10">
+      <div className="flex items-center gap-4 px-4 py-3 border-b border-stone-100 sticky top-0 bg-white/90 backdrop-blur z-10">
         <button
           onClick={() => navigate(-1)}
-          className="text-gray-600 hover:text-gray-900 cursor-pointer"
+          className="text-stone-600 hover:text-stone-900 cursor-pointer"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
-        <p className="font-bold text-gray-900 text-sm">Bookmarks</p>
+        <p className="font-bold text-stone-900 text-sm">Bookmarks</p>
       </div>
 
-      {loading && (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full" />
-        </div>
-      )}
+      {loading && <PostListSkeleton />}
 
       {error && (
         <div className="text-center py-12">
-          <p className="text-gray-400 text-sm">{error}</p>
+          <p className="text-stone-400 text-sm">{error}</p>
         </div>
       )}
 
       {!loading && !error && page && (
         <>
           {page.items.length === 0 ? (
-            <div className="text-center py-16 text-gray-400 text-sm">
+            <div className="text-center py-16 text-stone-400 text-sm">
               No bookmarks yet. Tap the bookmark icon on any post to save it here.
             </div>
           ) : (

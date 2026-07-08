@@ -3,7 +3,6 @@ package com.boondi.presentation.controller;
 import com.boondi.application.dto.request.LoginRequest;
 import com.boondi.application.dto.request.RegisterRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,24 +61,23 @@ class AuthControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private RegisterRequest validRegisterRequest;
-
-    @BeforeEach
-    void setUp() {
-        validRegisterRequest = RegisterRequest.builder()
-                .username("testuser")
-                .email("testuser@example.com")
-                .password("Password123!")
-                .displayName("Test User")
-                .build();
-    }
+    // The Postgres container is shared by the whole class and there is no per-test cleanup,
+    // so every test must register its own distinct user — two tests reusing a username/email
+    // means whichever runs second gets a 409 instead of what it was actually asserting.
 
     @Test
     @DisplayName("POST /auth/register - 201 Created with tokens when valid request")
     void register_success() throws Exception {
+        RegisterRequest request = RegisterRequest.builder()
+                .username("registersuccess")
+                .email("registersuccess@example.com")
+                .password("Password123!")
+                .displayName("Test User")
+                .build();
+
         ResultActions result = mockMvc.perform(post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(validRegisterRequest)));
+                .content(objectMapper.writeValueAsString(request)));
 
         result.andExpect(status().isCreated())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -88,8 +86,8 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.data.refreshToken", notNullValue()))
                 .andExpect(jsonPath("$.data.tokenType", is("Bearer")))
                 .andExpect(jsonPath("$.data.expiresIn", greaterThan(0)))
-                .andExpect(jsonPath("$.data.user.username", is("testuser")))
-                .andExpect(jsonPath("$.data.user.email", is("testuser@example.com")))
+                .andExpect(jsonPath("$.data.user.username", is("registersuccess")))
+                .andExpect(jsonPath("$.data.user.email", is("registersuccess@example.com")))
                 .andExpect(jsonPath("$.data.user.id", notNullValue()));
     }
 
@@ -97,15 +95,20 @@ class AuthControllerTest {
     @DisplayName("POST /auth/register - 409 Conflict when email already registered")
     void register_duplicateEmail_conflict() throws Exception {
         // First registration
+        RegisterRequest original = RegisterRequest.builder()
+                .username("dupemailuser")
+                .email("dupemail@example.com")
+                .password("Password123!")
+                .build();
         mockMvc.perform(post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(validRegisterRequest)))
+                .content(objectMapper.writeValueAsString(original)))
                 .andExpect(status().isCreated());
 
         // Attempt registration with same email, different username
         RegisterRequest duplicateEmail = RegisterRequest.builder()
                 .username("differentuser")
-                .email("testuser@example.com")  // same email
+                .email("dupemail@example.com")  // same email
                 .password("Password123!")
                 .build();
 

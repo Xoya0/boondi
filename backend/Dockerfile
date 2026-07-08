@@ -8,6 +8,8 @@ RUN ./mvnw package -DskipTests -q
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
+RUN addgroup -S boondi && adduser -S boondi -G boondi
 COPY --from=builder /app/target/boondi-backend-*.jar app.jar
+USER boondi
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

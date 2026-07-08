@@ -39,13 +39,13 @@ export default function ForgotPasswordPage() {
       <AuthLayout title="Check your email">
         <div className="text-center py-4">
           <div className="text-5xl mb-4">📧</div>
-          <p className="text-gray-600 text-sm leading-relaxed">
+          <p className="text-stone-600 text-sm leading-relaxed">
             If an account exists for that email address, we&apos;ve sent a password reset link.
             Check your inbox (and spam folder).
           </p>
           <Link
             to="/login"
-            className="inline-block mt-6 text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+            className="inline-block mt-6 text-sm text-brand-600 hover:text-brand-800 font-medium"
           >
             ← Back to sign in
           </Link>
@@ -61,13 +61,13 @@ export default function ForgotPasswordPage() {
     >
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
         {serverError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
             {serverError}
           </div>
         )}
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="email" className="block text-sm font-medium text-stone-700 mb-1">
             Email address
           </label>
           <input
@@ -75,7 +75,7 @@ export default function ForgotPasswordPage() {
             type="email"
             autoComplete="email"
             {...register('email')}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+            className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
             placeholder="you@example.com"
           />
           {errors.email && (
@@ -86,15 +86,15 @@ export default function ForgotPasswordPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition cursor-pointer"
+          className="w-full bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white font-medium py-2.5 px-4 rounded-xl text-sm transition cursor-pointer"
         >
           {isSubmitting ? 'Sending…' : 'Send reset link'}
         </button>
       </form>
 
-      <p className="text-center text-sm text-gray-500 mt-6">
+      <p className="text-center text-sm text-stone-500 mt-6">
         Remember your password?{' '}
-        <Link to="/login" className="text-indigo-600 hover:text-indigo-800 font-medium">
+        <Link to="/login" className="text-brand-600 hover:text-brand-800 font-medium">
           Sign in
         </Link>
       </p>

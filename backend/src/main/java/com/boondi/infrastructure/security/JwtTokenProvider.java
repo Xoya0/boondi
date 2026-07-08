@@ -6,6 +6,8 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -23,7 +25,17 @@ public class JwtTokenProvider {
     public JwtTokenProvider(
             @Value("${app.jwt.secret}") String secret,
             @Value("${app.jwt.access-token-expiry-ms}") long accessTokenExpiryMs,
-            @Value("${app.jwt.refresh-token-expiry-ms}") long refreshTokenExpiryMs) {
+            @Value("${app.jwt.refresh-token-expiry-ms}") long refreshTokenExpiryMs,
+            Environment environment) {
+        // Both the dev application.yml default and docker-compose's dev override share this
+        // "change-in-production" sentinel. If it's still set under the prod profile, every
+        // token is signed with a publicly-known key — refuse to start rather than silently
+        // issuing forgeable JWTs.
+        if (environment.acceptsProfiles(Profiles.of("prod")) && secret.contains("change-in-production")) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is still set to the default placeholder value under the 'prod' profile. " +
+                    "Set a real secret (>= 256 bits) via the JWT_SECRET environment variable before starting.");
+        }
         this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessTokenExpiryMs = accessTokenExpiryMs;
         this.refreshTokenExpiryMs = refreshTokenExpiryMs;

@@ -2,4 +2,13 @@
 <resources>
     <!-- Manifest-level theme only; Compose applies the real Material3 theme in BoondiTheme -->
     <style name="Theme.Boondi" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Launch splash (E10-10): brand amber ("Boondi Sunset") + droplet mark, shown by the
+         system from process start and held (see MainActivity) until the stored session is
+         resolved, then hands off to the normal theme. -->
+    <style name="Theme.Boondi.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/brand_amber</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.Boondi</item>
+    </style>
 </resources>

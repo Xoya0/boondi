@@ -15,7 +15,7 @@ export default function InfiniteScrollSentinel({ hasMore, loading, onLoadMore }:
   return (
     <div ref={sentinelRef} className="flex justify-center py-4">
       {loading && (
-        <div className="animate-spin w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full" />
       )}
     </div>
   )

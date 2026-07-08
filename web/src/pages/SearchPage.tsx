@@ -72,19 +72,19 @@ export default function SearchPage() {
   const currentPage = activeTab === 'users' ? usersPage : activeTab === 'posts' ? postsPage : hashtagsPage
 
   return (
-    <div className="min-h-screen bg-white max-w-xl mx-auto border-x border-gray-100">
+    <div className="min-h-screen bg-white max-w-xl mx-auto border-x border-stone-100">
       {/* Back nav + search input */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 sticky top-0 bg-white/90 backdrop-blur z-10">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-stone-100 sticky top-0 bg-white/90 backdrop-blur z-10">
         <button
           onClick={() => navigate(-1)}
-          className="text-gray-600 hover:text-gray-900 cursor-pointer flex-shrink-0"
+          className="text-stone-600 hover:text-stone-900 cursor-pointer flex-shrink-0"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
         <div className="relative flex-1">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 10.5A6.5 6.5 0 114 10.5a6.5 6.5 0 0113 0z" />
           </svg>
           <input
@@ -93,21 +93,21 @@ export default function SearchPage() {
             onChange={e => setInputValue(e.target.value)}
             placeholder="Search Boondi"
             autoFocus
-            className="w-full pl-9 pr-3 py-2 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-9 pr-3 py-2 bg-stone-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-100">
+      <div className="flex border-b border-stone-100">
         {(['users', 'posts', 'hashtags'] as SearchTab[]).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`flex-1 py-3 text-sm font-medium transition cursor-pointer ${
               activeTab === tab
-                ? 'text-gray-900 border-b-2 border-indigo-600'
-                : 'text-gray-400 hover:text-gray-600'
+                ? 'text-stone-900 border-b-2 border-brand-600'
+                : 'text-stone-400 hover:text-stone-600'
             }`}
           >
             {tab === 'users' ? 'Users' : tab === 'posts' ? 'Posts' : 'Hashtags'}
@@ -117,21 +117,21 @@ export default function SearchPage() {
 
       {/* Results */}
       {!query && (
-        <div className="text-center py-16 text-gray-400 text-sm">
+        <div className="text-center py-16 text-stone-400 text-sm">
           Search for people, posts, or hashtags.
         </div>
       )}
 
       {query && loading && (
         <div className="flex justify-center py-12">
-          <div className="animate-spin w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full" />
+          <div className="animate-spin w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full" />
         </div>
       )}
 
       {query && !loading && currentPage && (
         <>
           {currentPage.items.length === 0 ? (
-            <div className="text-center py-16 text-gray-400 text-sm">No results for "{query}".</div>
+            <div className="text-center py-16 text-stone-400 text-sm">No results for "{query}".</div>
           ) : activeTab === 'users' ? (
             (currentPage.items as UserProfile[]).map(u => <UserListItem key={u.id} user={u} />)
           ) : activeTab === 'posts' ? (
@@ -141,10 +141,10 @@ export default function SearchPage() {
               <button
                 key={h.tag}
                 onClick={() => handleHashtagClick(h.tag)}
-                className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 hover:bg-gray-50 text-left cursor-pointer"
+                className="w-full flex items-center justify-between px-4 py-3 border-b border-stone-100 hover:bg-stone-50 text-left cursor-pointer"
               >
-                <span className="font-semibold text-gray-900 text-sm">#{h.tag}</span>
-                <span className="text-gray-400 text-xs">{h.postCount.toLocaleString()} posts</span>
+                <span className="font-semibold text-stone-900 text-sm">#{h.tag}</span>
+                <span className="text-stone-400 text-xs">{h.postCount.toLocaleString()} posts</span>
               </button>
             ))
           )}

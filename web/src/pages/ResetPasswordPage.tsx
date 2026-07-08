@@ -36,12 +36,12 @@ export default function ResetPasswordPage() {
     return (
       <AuthLayout title="Invalid link">
         <div className="text-center py-4">
-          <p className="text-gray-600 text-sm">
+          <p className="text-stone-600 text-sm">
             This password reset link is invalid or has expired.
           </p>
           <Link
             to="/forgot-password"
-            className="inline-block mt-4 text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+            className="inline-block mt-4 text-sm text-brand-600 hover:text-brand-800 font-medium"
           >
             Request a new link
           </Link>
@@ -67,13 +67,13 @@ export default function ResetPasswordPage() {
     <AuthLayout title="Set a new password" subtitle="Choose a strong password for your account">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
         {serverError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
             {serverError}
           </div>
         )}
 
         <div>
-          <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="newPassword" className="block text-sm font-medium text-stone-700 mb-1">
             New password
           </label>
           <input
@@ -81,7 +81,7 @@ export default function ResetPasswordPage() {
             type="password"
             autoComplete="new-password"
             {...register('newPassword')}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+            className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
             placeholder="Minimum 8 characters"
           />
           {errors.newPassword && (
@@ -90,7 +90,7 @@ export default function ResetPasswordPage() {
         </div>
 
         <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-stone-700 mb-1">
             Confirm new password
           </label>
           <input
@@ -98,7 +98,7 @@ export default function ResetPasswordPage() {
             type="password"
             autoComplete="new-password"
             {...register('confirmPassword')}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+            className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
             placeholder="••••••••"
           />
           {errors.confirmPassword && (
@@ -109,7 +109,7 @@ export default function ResetPasswordPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition cursor-pointer"
+          className="w-full bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white font-medium py-2.5 px-4 rounded-xl text-sm transition cursor-pointer"
         >
           {isSubmitting ? 'Saving…' : 'Set new password'}
         </button>

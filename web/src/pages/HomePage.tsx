@@ -8,6 +8,8 @@ import { useAuthStore } from '../store/authStore'
 import PostCard from '../components/posts/PostCard'
 import PostComposer from '../components/posts/PostComposer'
 import InfiniteScrollSentinel from '../components/shared/InfiniteScrollSentinel'
+import { PostListSkeleton } from '../components/shared/PostCardSkeleton'
+import { currentTheme, toggleTheme } from '../theme'
 
 type FeedTab = 'latest' | 'home' | 'trending'
 
@@ -22,6 +24,7 @@ export default function HomePage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [theme, setTheme] = useState(currentTheme)
 
   const fetchTab = (tab: FeedTab, cursor?: string) =>
     tab === 'latest' ? timelinesApi.getLatest(cursor)
@@ -107,14 +110,31 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white max-w-xl mx-auto border-x border-gray-100">
+    <div className="min-h-screen bg-white max-w-xl mx-auto border-x border-stone-100">
       {/* Top nav */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-gray-100 sticky top-0 bg-white/90 backdrop-blur z-10">
-        <span className="font-bold text-indigo-600 text-lg">Boondi</span>
+      <header className="flex items-center justify-between px-4 py-3 border-b border-stone-100 sticky top-0 bg-white/90 backdrop-blur z-10">
+        <span className="font-bold text-brand-600 text-lg">Boondi</span>
         <div className="flex items-center gap-4">
           <button
+            onClick={() => setTheme(toggleTheme())}
+            className="text-stone-500 hover:text-stone-900 cursor-pointer"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            )}
+          </button>
+          <button
             onClick={() => navigate('/search')}
-            className="text-gray-500 hover:text-gray-900 cursor-pointer"
+            className="text-stone-500 hover:text-stone-900 cursor-pointer"
             title="Search"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,7 +143,7 @@ export default function HomePage() {
           </button>
           <button
             onClick={() => navigate('/bookmarks')}
-            className="text-gray-500 hover:text-gray-900 cursor-pointer"
+            className="text-stone-500 hover:text-stone-900 cursor-pointer"
             title="Bookmarks"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,7 +153,7 @@ export default function HomePage() {
           </button>
           <button
             onClick={() => navigate('/notifications')}
-            className="relative text-gray-500 hover:text-gray-900 cursor-pointer"
+            className="relative text-stone-500 hover:text-stone-900 cursor-pointer"
             title="Notifications"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,7 +169,7 @@ export default function HomePage() {
           {user?.role === 'ADMIN' && (
             <button
               onClick={() => navigate('/admin')}
-              className="text-gray-500 hover:text-gray-900 cursor-pointer"
+              className="text-stone-500 hover:text-stone-900 cursor-pointer"
               title="Admin panel"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,14 +181,14 @@ export default function HomePage() {
           {user && (
             <button
               onClick={() => navigate(`/profile/${user.username}`)}
-              className="text-sm text-gray-600 hover:text-gray-900 cursor-pointer"
+              className="text-sm text-stone-600 hover:text-stone-900 cursor-pointer"
             >
               @{user.username}
             </button>
           )}
           <button
             onClick={handleLogout}
-            className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
+            className="text-xs text-stone-400 hover:text-stone-600 cursor-pointer"
           >
             Sign out
           </button>
@@ -176,15 +196,15 @@ export default function HomePage() {
       </header>
 
       {/* Feed tabs */}
-      <div className="flex border-b border-gray-100">
+      <div className="flex border-b border-stone-100">
         {(['latest', 'home', 'trending'] as FeedTab[]).map(tab => (
           <button
             key={tab}
             onClick={() => switchTab(tab)}
             className={`flex-1 py-3 text-sm font-medium transition cursor-pointer ${
               activeTab === tab
-                ? 'text-gray-900 border-b-2 border-indigo-600'
-                : 'text-gray-400 hover:text-gray-600'
+                ? 'text-stone-900 border-b-2 border-brand-600'
+                : 'text-stone-400 hover:text-stone-600'
             }`}
           >
             {tab === 'latest' ? 'Latest' : tab === 'home' ? 'Home' : 'Trending'}
@@ -196,18 +216,14 @@ export default function HomePage() {
       <PostComposer onPosted={handlePostCreated} />
 
       {/* Feed content */}
-      {loading && (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full" />
-        </div>
-      )}
+      {loading && <PostListSkeleton />}
 
       {error && (
         <div className="text-center py-12">
-          <p className="text-gray-400 text-sm mb-3">{error}</p>
+          <p className="text-stone-400 text-sm mb-3">{error}</p>
           <button
             onClick={() => fetchFeed(activeTab)}
-            className="text-indigo-600 text-sm hover:underline cursor-pointer"
+            className="text-brand-600 text-sm hover:underline cursor-pointer"
           >
             Retry
           </button>
@@ -217,7 +233,7 @@ export default function HomePage() {
       {!loading && !error && page && (
         <>
           {page.items.length === 0 ? (
-            <div className="text-center py-16 text-gray-400 text-sm">
+            <div className="text-center py-16 text-stone-400 text-sm">
               {activeTab === 'home'
                 ? 'Follow some users to see their posts here.'
                 : activeTab === 'trending'

@@ -5,9 +5,13 @@ import com.boondi.android.data.remote.dto.LogoutRequestDto
 import com.boondi.android.domain.model.AuthSession
 import com.boondi.android.domain.model.User
 import dagger.Lazy
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,8 +29,18 @@ class SessionManager @Inject constructor(
     // Lazy to avoid constructing the network graph before it's needed / any init ordering issues.
     private val authApi: Lazy<AuthApi>,
 ) {
-    private val _state = MutableStateFlow<AuthState>(resolveInitialState())
+    private val _state = MutableStateFlow<AuthState>(AuthState.Loading)
     val state: StateFlow<AuthState> = _state.asStateFlow()
+
+    init {
+        // The first TokenStorage read creates the Keystore master key and decrypts the pref
+        // file — slow enough (especially on emulators) that doing it here synchronously (this
+        // constructor runs on the main thread during MainViewModel injection) was ANRing the
+        // app at launch. Resolve off-thread while the UI shows the Loading splash.
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            _state.compareAndSet(AuthState.Loading, resolveInitialState())
+        }
+    }
 
     val currentUser: User? get() = (_state.value as? AuthState.Authenticated)?.user
 

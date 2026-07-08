@@ -84,18 +84,18 @@ export default function EditProfileModal({ profile, onClose, onSaved }: EditProf
     >
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 sticky top-0 bg-white">
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100 sticky top-0 bg-white">
+          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 cursor-pointer">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h2 className="font-semibold text-gray-900 text-sm">Edit profile</h2>
+          <h2 className="font-semibold text-stone-900 text-sm">Edit profile</h2>
           <button
             form="edit-profile-form"
             type="submit"
             disabled={isSubmitting}
-            className="bg-gray-900 hover:bg-gray-700 disabled:bg-gray-300 text-white font-medium px-4 py-1.5 rounded-full text-sm transition cursor-pointer"
+            className="bg-stone-900 hover:bg-stone-700 disabled:bg-stone-300 text-white font-medium px-4 py-1.5 rounded-full text-sm transition cursor-pointer"
           >
             {isSubmitting ? 'Saving…' : 'Save'}
           </button>
@@ -103,12 +103,12 @@ export default function EditProfileModal({ profile, onClose, onSaved }: EditProf
 
         <form id="edit-profile-form" onSubmit={handleSubmit(onSubmit)}>
           {/* Banner */}
-          <div className="relative h-32 bg-gray-200 cursor-pointer" onClick={() => bannerRef.current?.click()}>
+          <div className="relative h-32 bg-stone-200 cursor-pointer" onClick={() => bannerRef.current?.click()}>
             {bannerPreview ? (
               <img src={bannerPreview} alt="Banner" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                     d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -128,10 +128,10 @@ export default function EditProfileModal({ profile, onClose, onSaved }: EditProf
               onClick={() => avatarRef.current?.click()}
             >
               {avatarPreview ? (
-                <img src={avatarPreview} alt="Avatar" className="w-full h-full rounded-full object-cover bg-gray-200" />
+                <img src={avatarPreview} alt="Avatar" className="w-full h-full rounded-full object-cover bg-stone-200" />
               ) : (
-                <div className="w-full h-full rounded-full bg-indigo-100 flex items-center justify-center">
-                  <span className="text-indigo-600 font-bold text-lg">
+                <div className="w-full h-full rounded-full bg-brand-100 flex items-center justify-center">
+                  <span className="text-brand-600 font-bold text-lg">
                     {(profile.displayName ?? profile.username).charAt(0).toUpperCase()}
                   </span>
                 </div>
@@ -149,41 +149,41 @@ export default function EditProfileModal({ profile, onClose, onSaved }: EditProf
           {/* Fields */}
           <div className="px-4 pb-6 space-y-4">
             {serverError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
                 {serverError}
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Display name</label>
+              <label className="block text-xs font-medium text-stone-500 mb-1">Display name</label>
               <input
                 type="text"
                 {...register('displayName')}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="Your Name"
               />
               {errors.displayName && <p className="text-red-500 text-xs mt-1">{errors.displayName.message}</p>}
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Username</label>
+              <label className="block text-xs font-medium text-stone-500 mb-1">Username</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">@</span>
                 <input
                   type="text"
                   {...register('username')}
-                  className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full pl-7 pr-3 py-2 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
               {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username.message}</p>}
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Bio</label>
+              <label className="block text-xs font-medium text-stone-500 mb-1">Bio</label>
               <textarea
                 {...register('bio')}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                className="w-full px-3 py-2 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
                 placeholder="Tell us about yourself"
               />
               {errors.bio && <p className="text-red-500 text-xs mt-1">{errors.bio.message}</p>}

@@ -42,13 +42,13 @@ export default function LoginPage() {
     <AuthLayout title="Welcome back" subtitle="Sign in to your Boondi account">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
         {serverError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
             {serverError}
           </div>
         )}
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="email" className="block text-sm font-medium text-stone-700 mb-1">
             Email
           </label>
           <input
@@ -56,7 +56,7 @@ export default function LoginPage() {
             type="email"
             autoComplete="email"
             {...register('email')}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+            className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
             placeholder="you@example.com"
           />
           {errors.email && (
@@ -66,12 +66,12 @@ export default function LoginPage() {
 
         <div>
           <div className="flex justify-between items-center mb-1">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="password" className="block text-sm font-medium text-stone-700">
               Password
             </label>
             <Link
               to="/forgot-password"
-              className="text-xs text-indigo-600 hover:text-indigo-800"
+              className="text-xs text-brand-600 hover:text-brand-800"
             >
               Forgot password?
             </Link>
@@ -81,7 +81,7 @@ export default function LoginPage() {
             type="password"
             autoComplete="current-password"
             {...register('password')}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+            className="w-full px-4 py-2.5 border border-stone-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition"
             placeholder="••••••••"
           />
           {errors.password && (
@@ -92,15 +92,15 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition cursor-pointer"
+          className="w-full bg-brand-600 hover:bg-brand-700 disabled:bg-brand-400 text-white font-medium py-2.5 px-4 rounded-xl text-sm transition cursor-pointer"
         >
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
 
-      <p className="text-center text-sm text-gray-500 mt-6">
+      <p className="text-center text-sm text-stone-500 mt-6">
         Don&apos;t have an account?{' '}
-        <Link to="/register" className="text-indigo-600 hover:text-indigo-800 font-medium">
+        <Link to="/register" className="text-brand-600 hover:text-brand-800 font-medium">
           Sign up
         </Link>
       </p>

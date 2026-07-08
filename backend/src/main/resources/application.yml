@@ -17,6 +17,14 @@ spring:
       ddl-auto: validate
     show-sql: false
     open-in-view: false
+  servlet:
+    multipart:
+      # Must be >= the largest per-file limit enforced in code (UserService's 10MB banner
+      # cap) — Spring Boot's own defaults (1MB file / 10MB request) are lower than that and
+      # would reject valid banner/avatar/post-image uploads with a generic 413 before the
+      # app's own size validation (and its friendlier error message) ever runs.
+      max-file-size: 10MB
+      max-request-size: 10MB
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -54,7 +62,12 @@ management:
         include: health,info
   endpoint:
     health:
-      show-details: always
+      # "always" would leak DB/Redis connectivity + disk-space internals to anyone hitting
+      # /actuator/health — it's permitAll() in SecurityConfig (health checks can't require
+      # auth) and there's no separate management port. The app's own /health endpoint
+      # (HealthController) is what Docker/Nginx actually probe; actuator's health is exposed
+      # only for completeness, so it doesn't need to reveal component details publicly.
+      show-details: never
 
 springdoc:
   api-docs:
@@ -64,6 +77,9 @@ springdoc:
     operations-sorter: method
 
 app:
+  admin:
+    # Comma-separated emails of registered accounts to promote to ADMIN at startup.
+    emails: ${ADMIN_EMAILS:}
   jwt:
     secret: ${JWT_SECRET:boondi-super-secret-key-change-in-production-must-be-at-least-256-bits-long}
     access-token-expiry-ms: 900000        # 15 minutes

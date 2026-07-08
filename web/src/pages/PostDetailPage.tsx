@@ -64,7 +64,7 @@ export default function PostDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full" />
       </div>
     )
   }
@@ -73,10 +73,10 @@ export default function PostDetailPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-500 mb-4">{error ?? 'Post not found.'}</p>
+          <p className="text-stone-500 mb-4">{error ?? 'Post not found.'}</p>
           <button
             onClick={() => navigate(-1)}
-            className="text-indigo-600 text-sm hover:underline cursor-pointer"
+            className="text-brand-600 text-sm hover:underline cursor-pointer"
           >
             ← Go back
           </button>
@@ -86,25 +86,25 @@ export default function PostDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white max-w-xl mx-auto border-x border-gray-100">
+    <div className="min-h-screen bg-white max-w-xl mx-auto border-x border-stone-100">
       {/* Back nav */}
-      <div className="flex items-center gap-4 px-4 py-3 border-b border-gray-100 sticky top-0 bg-white/90 backdrop-blur z-10">
+      <div className="flex items-center gap-4 px-4 py-3 border-b border-stone-100 sticky top-0 bg-white/90 backdrop-blur z-10">
         <button
           onClick={() => navigate(-1)}
-          className="text-gray-600 hover:text-gray-900 cursor-pointer"
+          className="text-stone-600 hover:text-stone-900 cursor-pointer"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
-        <p className="font-bold text-gray-900 text-sm">Post</p>
+        <p className="font-bold text-stone-900 text-sm">Post</p>
       </div>
 
       {/* If this post is itself a reply, offer a link to the parent */}
       {post.parentPostId && (
         <button
           onClick={() => navigate(`/post/${post.parentPostId}`)}
-          className="w-full text-left px-4 py-2 text-xs text-indigo-600 hover:bg-gray-50 border-b border-gray-100 cursor-pointer"
+          className="w-full text-left px-4 py-2 text-xs text-brand-600 hover:bg-stone-50 border-b border-stone-100 cursor-pointer"
         >
           ← View the post this replies to
         </button>
@@ -121,14 +121,14 @@ export default function PostDetailPage() {
       />
 
       {/* Replies */}
-      <div className="border-b border-gray-100 px-4 py-2">
-        <span className="font-medium text-gray-900 text-sm">
+      <div className="border-b border-stone-100 px-4 py-2">
+        <span className="font-medium text-stone-900 text-sm">
           Replies {post.replyCount > 0 && `(${post.replyCount})`}
         </span>
       </div>
 
       {repliesPage && repliesPage.items.length === 0 ? (
-        <div className="text-center py-12 text-gray-400 text-sm">
+        <div className="text-center py-12 text-stone-400 text-sm">
           No replies yet. Be the first to reply!
         </div>
       ) : (

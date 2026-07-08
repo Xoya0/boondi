@@ -8,6 +8,7 @@ import com.boondi.domain.entity.User;
 import com.boondi.domain.repository.FollowRepository;
 import com.boondi.domain.repository.UserRepository;
 import com.boondi.infrastructure.exception.BoondiException;
+import com.boondi.infrastructure.service.ImageContentValidator;
 import com.boondi.infrastructure.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class UserService {
     private final UserMapper userMapper;
     private final StorageService storageService;
     private final FollowRepository followRepository;
+    private final ImageContentValidator imageContentValidator;
 
     @Transactional(readOnly = true)
     public UserResponse getProfile(String username, UUID viewerId) {
@@ -125,7 +127,8 @@ public class UserService {
             throw BoondiException.fileUploadFailed("No file provided");
         }
         String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
+        if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)
+                || !imageContentValidator.matches(file, contentType)) {
             throw BoondiException.invalidFileType();
         }
         if (file.getSize() > maxSize) {
