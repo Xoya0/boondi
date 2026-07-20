@@ -1,11 +1,12 @@
 package com.boondi.android.ui.feed
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,7 +26,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +39,8 @@ import com.boondi.android.domain.model.Post
 import com.boondi.android.domain.model.QuotedPost
 import com.boondi.android.ui.common.Avatar
 import com.boondi.android.ui.common.formatRelativeTime
+import com.boondi.android.ui.theme.BoondiPillShape
+import com.boondi.android.ui.theme.Rose500
 
 /**
  * Post card (E4-10) — mirrors the web app's PostCard layout: avatar, name/handle/time,
@@ -67,7 +69,7 @@ fun PostCard(
                 imageUrl = post.author.profilePictureUrl,
                 name = post.author.name,
                 size = 44.dp,
-                modifier = Modifier.clickable { onAuthorClick(post.author.username) },
+                onClick = { onAuthorClick(post.author.username) },
             )
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -131,7 +133,7 @@ fun PostCard(
             }
         }
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 @Composable
@@ -151,52 +153,64 @@ private fun PostActionBar(
             icon = Icons.Outlined.ChatBubbleOutline,
             count = post.replyCount,
             tint = null,
+            active = false,
             onClick = { onReplyClick(post) },
         )
         ActionStat(
             icon = Icons.Outlined.Repeat,
             count = post.repostCount,
-            tint = if (post.repostedByViewer) Color(0xFF10B981) else null,
+            tint = if (post.repostedByViewer) MaterialTheme.colorScheme.tertiary else null,
+            active = post.repostedByViewer,
             onClick = { onRepostClick(post) },
         )
         ActionStat(
             icon = if (post.likedByViewer) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
             count = post.likeCount,
-            tint = if (post.likedByViewer) MaterialTheme.colorScheme.secondary else null,
+            tint = if (post.likedByViewer) Rose500 else null,
+            active = post.likedByViewer,
             onClick = { onLikeClick(post) },
         )
         ActionStat(
             icon = if (post.bookmarkedByViewer) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
             count = post.bookmarkCount,
             tint = if (post.bookmarkedByViewer) MaterialTheme.colorScheme.primary else null,
+            active = post.bookmarkedByViewer,
             onClick = { onBookmarkClick(post) },
         )
     }
 }
 
+/**
+ * A single reply/repost/like/bookmark action, shown as a pill "chip" that picks up a soft tint
+ * background when active — rather than a bare icon+count row, which is the exact look of
+ * Twitter/X's action bar. The chip treatment matches the rest of the app's pill-button language
+ * instead of reading as a direct clone of that pattern.
+ */
 @Composable
 private fun ActionStat(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     count: Int,
     tint: Color?,
+    active: Boolean,
     onClick: (() -> Unit)?,
 ) {
+    val contentColor = tint ?: MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = if (onClick != null) {
-            Modifier.clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            )
-        } else {
-            Modifier
-        },
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .clip(BoondiPillShape)
+            .background(if (active) contentColor.copy(alpha = 0.12f) else Color.Transparent)
+            .let { base -> if (onClick != null) base.clickable(onClick = onClick) else base }
+            // Icon glyphs alone are ~18dp; this pads the tappable/ripple area out to
+            // Material's 48dp minimum without shifting the visible icon/count layout.
+            .defaultMinSize(minWidth = 48.dp, minHeight = 40.dp)
+            .padding(horizontal = 10.dp),
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = tint ?: MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = contentColor,
             modifier = Modifier.size(18.dp),
         )
         if (count > 0) {
@@ -204,7 +218,8 @@ private fun ActionStat(
             Text(
                 text = count.toString(),
                 style = MaterialTheme.typography.bodySmall,
-                color = tint ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                color = contentColor,
             )
         }
     }
@@ -215,8 +230,8 @@ private fun QuotedPostEmbed(quoted: QuotedPost) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
             .padding(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

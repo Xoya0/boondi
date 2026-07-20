@@ -22,7 +22,7 @@ android {
 
         // Backend base URL. From the Android emulator, the host machine's localhost is
         // reachable at 10.0.2.2. Overridable per build type below.
-        buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/api/v1/\"")
+        buildConfigField("String", "BASE_URL", "\"https://capably-proving-fever.ngrok-free.dev/api/v1/\"")
     }
 
     buildTypes {

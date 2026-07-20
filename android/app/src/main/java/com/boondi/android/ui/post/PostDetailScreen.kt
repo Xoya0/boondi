@@ -1,18 +1,20 @@
 package com.boondi.android.ui.post
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -62,6 +64,9 @@ import com.boondi.android.ui.common.InfiniteListHandler
 import com.boondi.android.ui.common.LoadingBox
 import com.boondi.android.ui.common.formatRelativeTime
 import com.boondi.android.ui.feed.PostCard
+import com.boondi.android.ui.theme.BoondiBorderWidth
+import com.boondi.android.ui.theme.BoondiPillShape
+import com.boondi.android.ui.theme.Rose500
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,28 +89,31 @@ fun PostDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Post") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    val post = state.post
-                    if (post != null && post.author.id == viewModel.currentUserId) {
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = "More")
+            Column {
+                TopAppBar(
+                    title = { Text("Post", style = MaterialTheme.typography.titleLarge) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Delete") },
-                                onClick = { menuOpen = false; confirmDelete = true },
-                            )
+                    },
+                    actions = {
+                        val post = state.post
+                        if (post != null && post.author.id == viewModel.currentUserId) {
+                            IconButton(onClick = { menuOpen = true }) {
+                                Icon(Icons.Filled.MoreVert, contentDescription = "More")
+                            }
+                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Delete") },
+                                    onClick = { menuOpen = false; confirmDelete = true },
+                                )
+                            }
                         }
-                    }
-                },
-            )
+                    },
+                )
+                HorizontalDivider(thickness = BoondiBorderWidth, color = MaterialTheme.colorScheme.outline)
+            }
         },
     ) { innerPadding ->
         Box(Modifier.fillMaxSize().padding(innerPadding)) {
@@ -125,7 +133,7 @@ fun PostDetailScreen(
                                 onRepostClick = viewModel::toggleRepost,
                                 onBookmarkClick = viewModel::toggleBookmark,
                             )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             Text(
                                 text = "Replies",
                                 style = MaterialTheme.typography.titleSmall,
@@ -134,7 +142,7 @@ fun PostDetailScreen(
                             )
                         }
                         if (state.replies.isEmpty()) {
-                            item { EmptyState("No replies yet.") }
+                            item { EmptyState("No replies yet.", icon = Icons.Outlined.ChatBubbleOutline) }
                         } else {
                             items(state.replies, key = { it.id }) { reply ->
                                 PostCard(
@@ -195,6 +203,10 @@ private fun DetailPostHeader(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .clickable { onOpenParent(post.parentPostId) }
+                    // The text line alone is ~16dp tall; pad the tappable area out to
+                    // Material's 48dp minimum touch target and keep the text centered in it.
+                    .defaultMinSize(minHeight = 48.dp)
+                    .wrapContentHeight(Alignment.CenterVertically)
                     .padding(bottom = 8.dp),
             )
         }
@@ -203,7 +215,7 @@ private fun DetailPostHeader(
                 imageUrl = post.author.profilePictureUrl,
                 name = post.author.name,
                 size = 48.dp,
-                modifier = Modifier.clickable { onOpenProfile(post.author.username) },
+                onClick = { onOpenProfile(post.author.username) },
             )
             Spacer(Modifier.width(12.dp))
             Column {
@@ -244,53 +256,60 @@ private fun DetailPostHeader(
                 icon = Icons.Outlined.ChatBubbleOutline,
                 count = post.replyCount,
                 tint = null,
+                active = false,
                 onClick = onReplyClick,
             )
             DetailActionStat(
                 icon = Icons.Outlined.Repeat,
                 count = post.repostCount,
-                tint = if (post.repostedByViewer) Color(0xFF10B981) else null,
+                tint = if (post.repostedByViewer) MaterialTheme.colorScheme.tertiary else null,
+                active = post.repostedByViewer,
                 onClick = { onRepostClick(post) },
             )
             DetailActionStat(
                 icon = if (post.likedByViewer) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                 count = post.likeCount,
-                tint = if (post.likedByViewer) Color(0xFFEF4444) else null,
+                tint = if (post.likedByViewer) Rose500 else null,
+                active = post.likedByViewer,
                 onClick = { onLikeClick(post) },
             )
             DetailActionStat(
                 icon = if (post.bookmarkedByViewer) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
                 count = post.bookmarkCount,
-                tint = if (post.bookmarkedByViewer) Color(0xFF4F46E5) else null,
+                tint = if (post.bookmarkedByViewer) MaterialTheme.colorScheme.primary else null,
+                active = post.bookmarkedByViewer,
                 onClick = { onBookmarkClick(post) },
             )
         }
     }
 }
 
+/** Mirrors PostCard's chip-style ActionStat (see that file for rationale). */
 @Composable
 private fun DetailActionStat(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     count: Int,
     tint: Color?,
+    active: Boolean,
     onClick: (() -> Unit)?,
 ) {
+    val contentColor = tint ?: MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = if (onClick != null) {
-            Modifier.clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            )
-        } else {
-            Modifier
-        },
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .clip(BoondiPillShape)
+            .background(if (active) contentColor.copy(alpha = 0.12f) else Color.Transparent)
+            .let { base -> if (onClick != null) base.clickable(onClick = onClick) else base }
+            // Icon glyphs alone are ~20dp; this pads the tappable/ripple area out to
+            // Material's 48dp minimum without shifting the visible icon/count layout.
+            .defaultMinSize(minWidth = 48.dp, minHeight = 44.dp)
+            .padding(horizontal = 12.dp),
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = tint ?: MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = contentColor,
             modifier = Modifier.size(20.dp),
         )
         if (count > 0) {
@@ -298,7 +317,8 @@ private fun DetailActionStat(
             Text(
                 text = count.toString(),
                 style = MaterialTheme.typography.bodySmall,
-                color = tint ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                color = contentColor,
             )
         }
     }

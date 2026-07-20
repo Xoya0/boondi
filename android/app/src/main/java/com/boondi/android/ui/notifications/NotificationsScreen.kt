@@ -1,14 +1,18 @@
 package com.boondi.android.ui.notifications
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -19,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.boondi.android.ui.theme.BoondiBorderWidth
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.boondi.android.domain.model.Notification
@@ -40,16 +45,19 @@ fun NotificationsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Notifications") },
-                actions = {
-                    if (state.notifications.any { !it.read }) {
-                        TextButton(onClick = viewModel::markAllAsRead) {
-                            Text("Mark all read")
+            Column {
+                TopAppBar(
+                    title = { Text("Notifications", style = MaterialTheme.typography.titleLarge) },
+                    actions = {
+                        if (state.notifications.any { !it.read }) {
+                            TextButton(onClick = viewModel::markAllAsRead) {
+                                Text("Mark all read")
+                            }
                         }
-                    }
-                },
-            )
+                    },
+                )
+                HorizontalDivider(thickness = BoondiBorderWidth, color = MaterialTheme.colorScheme.outline)
+            }
         },
     ) { innerPadding ->
         Box(Modifier.fillMaxSize().padding(innerPadding)) {
@@ -57,7 +65,7 @@ fun NotificationsScreen(
                 state.loading && state.notifications.isEmpty() -> LoadingBox()
                 state.error != null && state.notifications.isEmpty() ->
                     ErrorState(state.error!!, onRetry = viewModel::load)
-                state.notifications.isEmpty() -> EmptyState("No notifications yet.")
+                state.notifications.isEmpty() -> EmptyState("No notifications yet.", icon = Icons.Outlined.NotificationsNone)
                 else -> {
                     InfiniteListHandler(listState = listState, onLoadMore = viewModel::loadMore)
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {

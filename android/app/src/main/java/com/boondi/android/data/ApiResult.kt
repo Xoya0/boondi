@@ -73,20 +73,24 @@ suspend fun <T> safeApiCallUnit(
 
 /** Extract the backend error envelope from a non-2xx HTTP response body. */
 fun parseHttpError(moshi: Moshi, e: HttpException): ApiResult.Error {
-    val fallback = when (e.code()) {
+    val domainFallback = when (e.code()) {
         401 -> "Session expired — please sign in again"
         403 -> "You don't have permission to do that"
         404 -> "Not found"
         409 -> "Already done"
         else -> "Request failed (${e.code()})"
     }
+    val raw = e.response()?.errorBody()?.string()
+    if (raw.isNullOrBlank()) return ApiResult.Error(domainFallback)
     return try {
-        val raw = e.response()?.errorBody()?.string()
-        if (raw.isNullOrBlank()) return ApiResult.Error(fallback)
         val adapter = moshi.adapter(ApiEnvelope::class.java)
         val env = adapter.fromJson(raw)
-        ApiResult.Error(env?.message ?: fallback, env?.errorCode)
+        ApiResult.Error(env?.message ?: domainFallback, env?.errorCode)
     } catch (_: Exception) {
-        ApiResult.Error(fallback)
+        // The body isn't our API's JSON envelope, so this response almost certainly never
+        // reached our backend — a proxy/tunnel/CDN error page, not our app returning this
+        // status. The domain-specific fallback above (e.g. "Session expired" for 401) would
+        // assert something false about the app, so use a generic, honest message instead.
+        ApiResult.Error("Couldn't reach the server. Please try again.")
     }
 }

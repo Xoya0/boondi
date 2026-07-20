@@ -96,7 +96,19 @@
       "Bash(npx tsc *)",
       "Bash(cd /c/Users/dibya/Documents/Boondi/android)",
       "Bash(./gradlew.bat :app:compileDebugKotlin)",
-      "Bash(xargs -0 sed -i 's/text-stone-400/text-stone-500/g')"
+      "Bash(xargs -0 sed -i 's/text-stone-400/text-stone-500/g')",
+      "Bash(./gradlew.bat compileDebugKotlin --console=plain)",
+      "Bash(./gradlew.bat compileDebugKotlin assembleDebug --console=plain)",
+      "Bash(nslookup boondi.duckdns.org)",
+      "Bash(ls gradlew.bat)",
+      "Bash(ls gradlew *)",
+      "Bash($SDK/platform-tools/adb.exe devices *)",
+      "Bash(echo \"--- current foreground app ---\")",
+      "Bash(/c/Users/dibya/AppData/Local/Android/Sdk/platform-tools/adb.exe shell *)",
+      "Bash(mkdir -p /c/Users/dibya/AppData/Local/Temp/claude/C--Users-dibya-Documents-Boondi/ce719101-8e40-4289-9446-d8f92db27eb8/scratchpad)",
+      "Bash(/c/Users/dibya/AppData/Local/Android/Sdk/platform-tools/adb.exe exec-out *)",
+      "Read(//c/Users/dibya/AppData/Local/Temp/claude/C--Users-dibya-Documents-Boondi/ce719101-8e40-4289-9446-d8f92db27eb8/scratchpad/**)",
+      "Bash(sleep 3)"
     ]
   }
 }

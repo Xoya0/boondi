@@ -63,10 +63,15 @@ services:
       JWT_SECRET: dev-secret-key-change-in-production-must-be-at-least-256-bits-long
       # Both point at container hostnames (docker-compose network), not localhost — the
       # backend runs inside its own container, so "localhost" would mean itself, not the
-      # mailhog/minio containers. STORAGE_PUBLIC_URL is deliberately left as localhost:9000
-      # (default) since that URL is handed to browser/app clients running on the host.
+      # mailhog/minio containers.
       MAIL_HOST: mailhog
       STORAGE_ENDPOINT: http://minio:9000
+      # Public URL clients (web browser, Android app) use to fetch uploaded media — must be
+      # reachable from *outside* the Docker network, unlike STORAGE_ENDPOINT above. Falls
+      # back to the useless http://localhost:9000 (see application.yml) if unset in .env.
+      STORAGE_PUBLIC_URL: ${STORAGE_PUBLIC_URL:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      APP_BASE_URL: ${APP_BASE_URL:-}
       # Registered account emails to auto-promote to ADMIN at startup (see AdminSeedConfig).
       # Override per-machine: ADMIN_EMAILS=you@example.com docker compose up -d backend
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
@@ -79,11 +84,33 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "80:80"
+      # Host port 80 is often unavailable on Windows (IIS/http.sys reserve it) — 8081 is
+      # only for direct host access (http://localhost:8081); the ngrok container reaches
+      # this service over the internal Docker network at nginx:80 regardless of this mapping.
+      - "8081:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - backend
+
+  # Tunnels the reserved domain (matching STORAGE_PUBLIC_URL/CORS_ORIGINS/APP_BASE_URL in
+  # .env, and BASE_URL baked into the Android build) to nginx rather than the backend
+  # directly, so both /api/ (backend) and /boondi-media/ (minio) are reachable through the
+  # one public domain — matching what STORAGE_PUBLIC_URL assumes. Comes up automatically
+  # with `docker compose up -d`. Requires NGROK_AUTHTOKEN in .env.
+  ngrok:
+    image: ngrok/ngrok:latest
+    restart: unless-stopped
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    command:
+      - "http"
+      - "--url=capably-proving-fever.ngrok-free.dev"
+      - "nginx:80"
+    ports:
+      - "4040:4040"
+    depends_on:
+      - nginx
 
 volumes:
   postgres_data:

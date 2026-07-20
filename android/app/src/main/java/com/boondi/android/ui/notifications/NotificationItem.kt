@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -46,15 +47,16 @@ fun NotificationItem(
             .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.Top) {
-            if (!notification.read) {
-                Box(
-                    modifier = Modifier
-                        .padding(top = 6.dp, end = 8.dp)
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
-                )
-            }
+            // Always reserve this space (dot drawn transparent when read) so the avatar sits
+            // at the same x-offset for every row — previously this was only added for unread
+            // items, so avatars visibly jumped left/right when scrolling a mixed read/unread list.
+            Box(
+                modifier = Modifier
+                    .padding(top = 6.dp, end = 8.dp)
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(if (!notification.read) MaterialTheme.colorScheme.primary else Color.Transparent),
+            )
             Avatar(
                 imageUrl = notification.actor.profilePictureUrl,
                 name = notification.actor.name,
@@ -96,7 +98,7 @@ fun NotificationItem(
             }
         }
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 private fun actionText(type: NotificationType): String = when (type) {

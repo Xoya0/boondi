@@ -10,18 +10,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +45,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.boondi.android.ui.common.Avatar
+import com.boondi.android.ui.common.BoondiButton
+import com.boondi.android.ui.theme.BoondiBorderWidth
+import com.boondi.android.ui.theme.Coral500
 import kotlinx.coroutines.flow.collectLatest
 
 /**
@@ -70,31 +75,35 @@ fun ComposePostScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(if (isReply) "Reply" else "New post") },
-                navigationIcon = {
-                    IconButton(onClick = onClose) {
-                        Icon(Icons.Filled.Close, contentDescription = "Close")
-                    }
-                },
-                actions = {
-                    Button(
-                        onClick = viewModel::submit,
-                        enabled = state.canSubmit,
-                        modifier = Modifier.padding(end = 8.dp),
-                    ) {
-                        if (state.submitting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                        } else {
-                            Text(if (isReply) "Reply" else "Post")
+            Column {
+                TopAppBar(
+                    title = { Text(if (isReply) "Reply" else "New post", style = MaterialTheme.typography.titleLarge) },
+                    navigationIcon = {
+                        IconButton(onClick = onClose) {
+                            Icon(Icons.Filled.Close, contentDescription = "Close")
                         }
-                    }
-                },
-            )
+                    },
+                    actions = {
+                        BoondiButton(
+                            onClick = viewModel::submit,
+                            enabled = state.canSubmit,
+                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
+                            modifier = Modifier.padding(end = 12.dp, top = 4.dp, bottom = 4.dp),
+                        ) {
+                            if (state.submitting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                )
+                            } else {
+                                Text(if (isReply) "Reply" else "Post")
+                            }
+                        }
+                    },
+                )
+                HorizontalDivider(thickness = BoondiBorderWidth, color = MaterialTheme.colorScheme.outline)
+            }
         },
     ) { innerPadding ->
         Column(
@@ -127,7 +136,8 @@ fun ComposePostScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp)
-                            .clip(RoundedCornerShape(16.dp)),
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(BoondiBorderWidth, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp)),
                     )
                     if (state.uploadingImage) {
                         Box(
@@ -169,7 +179,7 @@ fun ComposePostScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = when {
                         state.overLimit -> MaterialTheme.colorScheme.error
-                        state.remaining <= 50 -> Color(0xFFF59E0B)
+                        state.remaining <= 50 -> Coral500
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     },
                 )

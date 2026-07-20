@@ -12,24 +12,32 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.automirrored.outlined.Article
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Search as SearchOutlined
+import androidx.compose.material.icons.outlined.Tag as TagOutlined
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,10 +45,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.boondi.android.domain.model.Hashtag
 import com.boondi.android.domain.model.User
 import com.boondi.android.ui.common.Avatar
+import com.boondi.android.ui.common.BoondiSegmentedTabs
 import com.boondi.android.ui.common.EmptyState
 import com.boondi.android.ui.common.ErrorState
 import com.boondi.android.ui.common.InfiniteListHandler
 import com.boondi.android.ui.feed.PostCard
+import com.boondi.android.ui.theme.BoondiBorderWidth
 
 private val TABS = listOf(SearchTab.USERS to "Users", SearchTab.POSTS to "Posts", SearchTab.HASHTAGS to "Hashtags")
 
@@ -55,6 +65,7 @@ fun SearchScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val selectedIndex = TABS.indexOfFirst { it.first == state.tab }.coerceAtLeast(0)
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     Scaffold(
         topBar = {
@@ -64,24 +75,31 @@ fun SearchScreen(
                     onValueChange = viewModel::onQueryChange,
                     placeholder = { Text("Search Boondi") },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (state.inputValue.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.onQueryChange("") }) {
+                                Icon(Icons.Filled.Close, contentDescription = "Clear search")
+                            }
+                        }
+                    },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { keyboardController?.hide() }),
                     modifier = Modifier.fillMaxWidth().padding(12.dp),
                 )
-                TabRow(selectedTabIndex = selectedIndex) {
-                    TABS.forEach { (tab, label) ->
-                        Tab(
-                            selected = tab == state.tab,
-                            onClick = { viewModel.selectTab(tab) },
-                            text = { Text(label) },
-                        )
-                    }
-                }
+                BoondiSegmentedTabs(
+                    labels = TABS.map { it.second },
+                    selectedIndex = selectedIndex,
+                    onSelect = { index -> viewModel.selectTab(TABS[index].first) },
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+                HorizontalDivider(thickness = BoondiBorderWidth, color = MaterialTheme.colorScheme.outline)
             }
         },
     ) { innerPadding ->
         Box(Modifier.fillMaxSize().padding(innerPadding)) {
             when {
-                state.searchedQuery.isBlank() -> EmptyState("Search for people, posts, or hashtags.")
+                state.searchedQuery.isBlank() -> EmptyState("Search for people, posts, or hashtags.", icon = Icons.Outlined.SearchOutlined)
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
@@ -91,7 +109,7 @@ fun SearchScreen(
                     when (state.tab) {
                         SearchTab.USERS -> {
                             if (state.users.items.isEmpty()) {
-                                EmptyState("No users found for \"${state.searchedQuery}\".")
+                                EmptyState("No users found for \"${state.searchedQuery}\".", icon = Icons.Outlined.Group)
                             } else {
                                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                                     items(state.users.items, key = { it.id }) { user ->
@@ -103,7 +121,7 @@ fun SearchScreen(
                         }
                         SearchTab.POSTS -> {
                             if (state.posts.items.isEmpty()) {
-                                EmptyState("No posts found for \"${state.searchedQuery}\".")
+                                EmptyState("No posts found for \"${state.searchedQuery}\".", icon = Icons.AutoMirrored.Outlined.Article)
                             } else {
                                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                                     items(state.posts.items, key = { it.id }) { post ->
@@ -123,7 +141,7 @@ fun SearchScreen(
                         }
                         SearchTab.HASHTAGS -> {
                             if (state.hashtags.items.isEmpty()) {
-                                EmptyState("No hashtags found for \"${state.searchedQuery}\".")
+                                EmptyState("No hashtags found for \"${state.searchedQuery}\".", icon = Icons.Outlined.TagOutlined)
                             } else {
                                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                                     items(state.hashtags.items, key = { it.tag }) { hashtag ->
@@ -166,7 +184,7 @@ private fun SearchUserRow(user: User, onClick: () -> Unit) {
             }
         }
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 @Composable
@@ -186,7 +204,7 @@ private fun HashtagRow(hashtag: Hashtag, onClick: () -> Unit) {
             )
         }
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 @Composable

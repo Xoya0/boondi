@@ -1,5 +1,6 @@
 package com.boondi.android.ui.shell
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -8,13 +9,17 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import com.boondi.android.ui.theme.BoondiBorderWidth
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -74,41 +79,59 @@ fun HomeShell(
         }
     }
 
+    // Explicit surface + item colors so the bar stays on the navy/cream/coral palette rather
+    // than falling back to Compose's default (purple-tinted) tonal-elevation surface — see the
+    // "surface-container" comment in Color.kt for why that fallback happens.
+    val itemColors = NavigationBarItemDefaults.colors(
+        selectedIconColor = MaterialTheme.colorScheme.primary,
+        selectedTextColor = MaterialTheme.colorScheme.primary,
+        indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = currentRoute == ShellTab.HOME,
-                    onClick = { navigateToTab(ShellTab.HOME) },
-                    icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
-                    label = { Text("Home") },
-                )
-                NavigationBarItem(
-                    selected = currentRoute == ShellTab.SEARCH,
-                    onClick = { navigateToTab(ShellTab.SEARCH) },
-                    icon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
-                    label = { Text("Search") },
-                )
-                NavigationBarItem(
-                    selected = currentRoute == ShellTab.NOTIFICATIONS,
-                    onClick = { navigateToTab(ShellTab.NOTIFICATIONS) },
-                    icon = {
-                        BadgedBox(badge = {
-                            if (unreadCount > 0) {
-                                Badge { Text(if (unreadCount > 99) "99+" else unreadCount.toString()) }
+            Column {
+                HorizontalDivider(thickness = BoondiBorderWidth, color = MaterialTheme.colorScheme.outline)
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                    NavigationBarItem(
+                        selected = currentRoute == ShellTab.HOME,
+                        onClick = { navigateToTab(ShellTab.HOME) },
+                        icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
+                        label = { Text("Home") },
+                        colors = itemColors,
+                    )
+                    NavigationBarItem(
+                        selected = currentRoute == ShellTab.SEARCH,
+                        onClick = { navigateToTab(ShellTab.SEARCH) },
+                        icon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
+                        label = { Text("Search") },
+                        colors = itemColors,
+                    )
+                    NavigationBarItem(
+                        selected = currentRoute == ShellTab.NOTIFICATIONS,
+                        onClick = { navigateToTab(ShellTab.NOTIFICATIONS) },
+                        icon = {
+                            BadgedBox(badge = {
+                                if (unreadCount > 0) {
+                                    Badge { Text(if (unreadCount > 99) "99+" else unreadCount.toString()) }
+                                }
+                            }) {
+                                Icon(Icons.Filled.Notifications, contentDescription = "Notifications")
                             }
-                        }) {
-                            Icon(Icons.Filled.Notifications, contentDescription = "Notifications")
-                        }
-                    },
-                    label = { Text("Alerts") },
-                )
-                NavigationBarItem(
-                    selected = currentRoute == ShellTab.PROFILE,
-                    onClick = { navigateToTab(ShellTab.profileRoute(currentUsername)) },
-                    icon = { Icon(Icons.Filled.Person, contentDescription = "Profile") },
-                    label = { Text("Profile") },
-                )
+                        },
+                        label = { Text("Alerts") },
+                        colors = itemColors,
+                    )
+                    NavigationBarItem(
+                        selected = currentRoute == ShellTab.PROFILE,
+                        onClick = { navigateToTab(ShellTab.profileRoute(currentUsername)) },
+                        icon = { Icon(Icons.Filled.Person, contentDescription = "Profile") },
+                        label = { Text("Profile") },
+                        colors = itemColors,
+                    )
+                }
             }
         },
     ) { innerPadding ->
